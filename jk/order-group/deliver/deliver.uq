@@ -29,9 +29,7 @@ IDX DxDeliverMain (
 ID DeliverDetail GLOBAL(
     id,                     -- 
     main ID DeliverMain,    -- DeliverMain id	
-    orderDetail ID orderDetail,
     quantity dec(18, 4),
-    INDEX idx_orderDetail(orderDetail),
 );
 
 IDX DxDeliverDetail (
@@ -40,16 +38,14 @@ IDX DxDeliverDetail (
     pickDone dec(12, 2) DEFAULT 0 SUM, 
 	deliverReturn DEC(12,2) SUM,			-- 应退货
     returnDone dec(12, 2) DEFAULT 0,
+	-- 此次发货的特殊要求保存在此处
+	showPrice tinyint,
+	json text
 );
 
 -- 处理中的发货单
 IDX DxDelivering (
     id,
-);
-
-IX IxWarehouseDeliverMain (
-	ix Warehouse,
-	xi DeliverMain,
 );
 
 IX IxUserWarehouse (
@@ -63,7 +59,22 @@ IX IxPendingDeliver (
     xi OrderDetail,
     quantity dec(18, 4),
     -- 其实要加上此次发货的特殊要求，即deliver-ext的内容
+	showPrice tinyint,
+	json text
 );
+
+ACT Delivering (
+	deliver ID,
+) {
+	WITH DxDelivering ID=deliver;
+	WITH DxDeliverMain ID=deliver SET staff=$user;
+};
+
+/*ACT Delivered(
+	deliver ID,
+){
+	WITH DxDelivering ID=deliver DEL;
+};*/
 
 QUERY WarehousePendingDeliver(
 )
@@ -92,14 +103,13 @@ RETURNS ret (
 	pickRows SMALLINT,
 	staff ID,
 ) {
-	INTO ret SELECT uw.xi as warehouse
+	INTO ret SELECT b.warehouse
 		, b.id as deliverMain, b.no
 		, b.customer, b.[$create] as create, c.rows, c.pickRows, c.staff
-		FROM IxUserWarehouse as uw
-			LEFT JOIN IxWarehouseDeliverMain as a ON uw.xi=a.ix
-			JOIN DeliverMain as b ON a.xi=b.id
+		FROM IxUserWarehouse as a
+			JOIN DeliverMain as b ON a.xi=b.warehouse
 			LEFT JOIN DxDeliverMain as c ON b.id=c.id
-		WHERE uw.ix=$user;
+		WHERE a.ix=$user;
 };
 
 QUERY CustomerPendingDeliver(
@@ -158,7 +168,6 @@ ACT AutoWarehouseDeliver()
 			SET deliverNo=NO(DeliverMain);
 			SET deliver=ID(DeliverMain new, deliverNo);
 			WITH DeliverMain as a ID=deliver SET a.customer=customer, a.warehouse=warehouse;
-			WITH IxWarehouseDeliverMain IX=warehouse XI=deliver;
 			INTO tblWarehouseDeliver SELECT warehouse, customer, deliver;
 			-- 对于有增1的字段，必须用下一句，保证这一行在表中存在
 			WITH DxDeliverMain as a ID=deliver;
@@ -204,7 +213,7 @@ RETURNS detail (
 		b.item, b.product,
 		a.quantity as deliverShould, c.pickDone, c.deliverDone, c.returnDone 
 		FROM DeliverDetail as a 
-			JOIN OrderDetail as b ON a.id = b.orderDetail
+			JOIN OrderDetail as b ON a.id = b.id
 			LEFT JOIN DxDeliverDetail as c ON a.id = c.id
 		WHERE a.main = deliver;
 };
