@@ -1,31 +1,23 @@
-QUERY GetPendingPayment ver 1.0()
-returns ret(
-    id bigint,
-    no char(30),
-    description char(50),
+QUERY SearchOrders( keyWord char(100), state char(100), customer ID Customer)
+PAGE (
+    seq bigint asc,
+    id ID OrderMain,
+    no char(20) not null,
     date datetime,
-    amount dec(12,2),
-    amountPayed dec(12,2)
-) {
-    into ret select os.order as id, st.no, st.discription as description, st.date
-            , os.总金额 as amount, os.已付金额 as amountPayed
-    from    orderState as os
-            join [$sheet] as st on os.order = st.id and st.sheet = 30 -- (typeof order)
-    where   st.user = $user
-            and os.总金额 - os.已付金额 > 0;
-};
+    state char(10)
+){
+    /-mysql
 
--- 已作废，不再使用
-QUERY GetPendingAuditOrders(webUser bigint)
-returns ret(
-    id bigint,
-    no char(30),
-    description char(50),
-    date datetime
-) {
-    into ret select st.id, st.no, st.discription as description, st.date
-    from   [$sheet] as st
-    where   st.user = webUser
-            and st.sheet = 43 -- typeof order
-            and st.state = 20;
+    INSERT  INTO `_$page` (`id`, `no`, `date`, `state`, `seq`)
+    SELECT  a.`id`, a.no, a.createDate as date, os.state, a.`id` as seq
+    FROM    tv_ordermain a
+            inner join tv_orderdetail b on b.main = a.id
+            inner join `product`.tv_productx p on b.product = p.id
+            inner join `product`.tv_productchemical pc on pc.`$unit` = p.`$unit` and pc.product = p.id
+            inner join tv_dxordermainstate os ON os.id = a.id
+    WHERE a.id > `_$pagestart` and (os.state = `_state` OR `_state` IS NULL) and a.customer = `_customer`
+        AND (`_keyWord` IS NULL or p.description like concat('%', `_keyWord`, '%') OR a.no = `_keyWord` OR pc.cas = `_keyWord`)
+    LIMIT   `_$pagesize`;
+
+    -/
 };

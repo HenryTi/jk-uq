@@ -26,7 +26,7 @@ TUID PointProductLib (
     var source char(8), sourceId char(50);
     set source = type, sourceId = sourceId from PointProductSource where pointProduct = id; 
     if (not source is null) {
-        bus pointProductBus.pointProductBusOut set pack = id, source = source, sourceId = sourceId,
+        bus pointBus.pointProductBusOut set pack = id, source = source, sourceId = sourceId,
             point = point, startDate = unix_timestamp(startDate), endDate = unix_timestamp(endDate), imageUrl = imageUrl;
     }
 };
@@ -41,7 +41,7 @@ MAP PointProductSource (
     set point = point, startDate = startDate, endDate = endDate, imageUrl = imageUrl
     from    PointProductLib
     where   id = pointProduct; 
-    bus pointProductBus.pointProductBusOut set pack = pointProduct, source = type, sourceId = sourceId,
+    bus pointBus.pointProductBusOut set pack = pointProduct, source = type, sourceId = sourceId,
         point = point, startDate = unix_timestamp(startDate), endDate = unix_timestamp(endDate), imageUrl = imageUrl;
 };
 
@@ -77,8 +77,8 @@ BOOK PointBook (
     point int not null default 0,           -- 总有效积分
     usedPoint int default 0,                -- 消耗的积分
     totalPoint int not null default 0,      -- 总积分
-    tempPoint int not null default 0,       -- 在tonva订单系统产生的临时积分（当此积分同步到内部系统，再从内部系统同步回来时，会并入totalPoint内，此积分清零)
-    tempUsedPoint int not null default 0,   -- 在tonva系统消耗的临时积分（当此积分同步到内部系统，再从内部系统同步回来时，会并入usedPoint内，此积分清零), 2020-10-16, ligsh, 不再使用此字段
+    tempPoint int not null default 0,       -- 在tonva订单系统产生的临时积分(当此积分同步到内部系统，再从内部系统同步回来时，会并入totalPoint内，此积分清零)
+    tempUsedPoint int not null default 0,   -- 在tonva系统消耗的临时积分(当此积分同步到内部系统，再从内部系统同步回来时，会并入usedPoint内，此积分清零), 2020-10-16, ligsh, 不再使用此字段
     tempSignInPoint int not null default 0  -- 签到产生的积分，该积分和tempPoint的区别是，它是有效积分，该积分也需要同步到内部系统，从内部系统同步回来时，并入到totalPoint和point中，此积分清零, 2020-10-16, ligsh, 不再使用此字段
 );
 
@@ -96,7 +96,8 @@ HISTORY PointHistory (
     date,                       --生成时间
     pointYear int,              --积分年度
     point int,                  --积分数(100 or -100)
-    source int,                 --积分来源: 1：使用积分券下单积分；2：签到积分；3:积分兑换(积分为负); 4:兑换取消；
+    pointType ENUM EnumPointType, 
+    source ENUM EnumPointChangingSource, --积分来源: 1：使用积分券下单积分；2：签到积分；3:积分兑换(积分为负); 5:订单积分;
     comments char(1000) ,       --备注
     webUser ID [$user],         --客户
     sheet,                      --单据
@@ -104,17 +105,82 @@ HISTORY PointHistory (
     row,                        --子表的第几行
 );
 
+-- 1:总积分；2.有效积分；3.用掉的积分
+ENUM EnumPointType (
+    total = 1, point = 2, used = 3
+);
+
+-- 1: 使用积分券下单积分；2：签到积分；3:积分兑换(积分为负); 5:订单积分; 8:中奖积分;
+ENUM EnumPointChangingSource (
+    ordermultiple = 1, signIn = 2, exchange = 3, order = 5, lottery = 8, return = 9
+);
+
 -- 积分变化表(针对customer)
 HISTORY PointHistoryByCustomer (
     date,                       --生成时间
     pointYear int,              --积分年度
     point int,                  --积分数(100 or -100)
-    source int,                 --积分来源: 1：使用积分券下单积分；2：签到积分；3:积分兑换(积分为负); 4:兑换取消; 5:订单积分;6:有效积分变动;
+    pointType ENUM EnumPointType, 
+    source ENUM EnumPointChangingSource, --积分来源: 1：使用积分券下单积分；2：签到积分；3:积分兑换(积分为负); 5:订单积分;
     comments char(1000) ,       --备注
     customer ID Customer,       --客户
     sheet,                      --单据
     type,                       --不同的sheet类型
     row,                        --子表的第几行
+);
+
+
+IDX DxOrderDetail (
+    id, -- order detailId
+    point int sum log,
+    totalPoint int sum,
+    multiple int,
+);
+
+-- 积分变化表(针对order订单明细),2021年8月27日，D72
+HISTORY OrderDetailPointHistory (
+    date,                                   --生成时间
+    orderDetailId ID orderDetail,           --订单明细ID
+    pointYear int,                          --积分年度
+    point int,                              --积分数(100 or -100)
+    type int,                               --1：使用积分券下单积分；2：签到积分；3:积分兑换(积分为负); 4:兑换取消; 5:订单积分;6:有效积分变动;
+    comments char(1000) ,                   --备注
+);
+
+-- 退货订单积分表,2021年9月15日，D72
+IDX DxReOrderDetail (
+    id, -- order detailId
+    point int sum log,
+    totalPoint int sum,
+);
+
+-- 退货订单积分变化表(针对order订单明细),2021年9月15日，D72
+HISTORY ReOrderDetailPointHistory (
+    date,                                   --生成时间
+    orderDetailId ID orderDetail,           --订单明细ID
+    pointYear int,                          --积分年度
+    point int,                              --积分数(100 or -100)
+    type int,                               --1：使用积分券下单积分；2：签到积分；3:积分兑换(积分为负); 4:兑换取消; 5:订单积分;6:有效积分变动;
+    comments char(1000),                   --备注
+);
+
+
+
+/*
+-- 积分订单明细表,2021年8月27日，D72
+BOOK PointBookByOrderDetail (
+    key orderDetailId ID orderDetail,       -- 订单明细ID
+    amountOfMoney  dec(12, 2),              -- 金额
+    point int not null default 0,           -- 有效积分
+    totalPoint int not null default 0,      -- 积分
+    multiple int not null default 1,        -- 积分倍数
+);
+*/
+
+-- 积分客户黑名单（在该表中的客户不参与积分），2021年09月07日，D72
+MAP PointCustomerBlacklist (
+    key blackCustomer ID Customer not null,
+    createTime datetime,
 );
 
 -- 当前客户积分分布表（在某个积分段有多少人）
@@ -142,8 +208,8 @@ Action submit {
 
     foreach (var mPoint int, pointYear int of
         select  (p.point - p.usedPoint) as mPoint, p.pointYear
-        from    PointBook as p
-        where   p.webUser = webUser and p.pointYear > YEAR(NOW()) - 3
+        from    PointBookByCustomer as p
+        where   p.customer = webUser and p.pointYear > YEAR(NOW()) - 3
                 and (p.point - p.usedPoint) > 0
         order by p.pointYear
     ) {
@@ -155,15 +221,12 @@ Action submit {
                 set p = mPoint;
             }
 
-            book PointBook at (webUser, pointYear) set usedPoint += p;
-            history PointHistory
-                set webUser = webUser, pointYear = pointYear, point = (0-p), comments=$sheet_no, source = 3;
-             
             --添加客户积分兑换
             if (customer > 0) {
                 book PointBookByCustomer at (customer, pointYear) set usedPoint += p;
                 history PointHistoryByCustomer
-                    set customer = customer, pointYear = pointYear, point = (0-p), comments=$sheet_no, source = 3;
+                    set customer = customer, pointYear = pointYear, point = (0-p), comments=$sheet_no
+                    , pointType = EnumPointType.used, source = EnumPointChangingSource.exchange;
             }
 
             set leftAmount = leftAmount - p;
@@ -173,60 +236,29 @@ Action submit {
         }
     }
 
-    if (customer > 0) {
-        bus pointShopBus.pointExchangeSheet set id = $id, no = $sheet_no, customer = customer,
-            shippingContact = shippingContact, amount = amount;
-        var source char(8), sourceId int;
-        foreach exchangeItems {
-            set source = type, sourceId = sourceId from PointProductSource where pointProduct = product;
-            bus pointShopBus.pointExchangeSheet into exchangeItems add product = product, source = source, sourceId = sourceId,
-                quantity = quantity, point = point, subAmount = subAmount;
-        }
-        STATE TO Shipping;
-    } else {
-        STATE TO Matching;
+    bus pointBus.pointExchangeSheet set id = $id, no = $sheet_no, customer = customer,
+        shippingContact = shippingContact, amount = amount;
+    var source char(8), sourceId int;
+    foreach exchangeItems {
+        set source = type, sourceId = sourceId from PointProductSource where pointProduct = product;
+        bus pointBus.pointExchangeSheet into exchangeItems add product = product, source = source, sourceId = sourceId,
+            quantity = quantity, point = point, subAmount = subAmount;
     }
+    STATE TO Shipping;
 }
-STATE Matching {
-    ACTION Pass
-    BUS webUserBus.getCuByWu as q into tb {
-        set q.webUser = webUser;
-    } {
-        if(customer is null) {
-            var customerid int;
-            foreach tb {
-                set customerid = customer;
-            }
-
-            bus pointShopBus.pointExchangeSheet set id = $id, no = $sheet_no, customer = customerid,
-                shippingContact = shippingContact, amount = amount;
-            var source char(8), sourceId int;
-            foreach exchangeItems {
-                set source = type, sourceId = sourceId from PointProductSource where pointProduct = product;
-                bus pointShopBus.pointExchangeSheet into exchangeItems add product = product, source = source, sourceId = sourceId,
-                    quantity = quantity, point = point, subAmount = subAmount;
-            }
-        STATE TO Shipping;
-        }
-    }
-}
+-- 前台界面需修改：未审核的新webuser不能兑换产品，需要新进行审核，界面上要有提示
 STATE Shipping {
     ACTION Cancel {
         foreach(var pointYear int, point int of 
             select p.pointYear, p.point
-            from PointHistory as p
-            where p.webUser = webUser and p.source = 3 and p.comments = $sheet_no
+            from PointHistoryByCustomer as p
+            where p.customer = customer and p.source = EnumPointChangingSource.exchange and p.comments = $sheet_no
         ){
-            book PointBook at (webUser, pointYear) set usedPoint -= point * -1;
-            history PointHistory
-                set webUser = webUser, pointYear = pointYear, point = point * -1, comments=$sheet_no, source = 4;
-
             --添加客户积分兑换取消
-            if (customer > 0) {
-                book PointBookByCustomer at (customer, pointYear) set usedPoint -= point * -1;
-                history PointHistoryByCustomer
-                    set customer = customer, pointYear = pointYear, point = point * -1, comments=$sheet_no, source = 4;            
-            }
+            book PointBookByCustomer at (customer, pointYear) set usedPoint -= point * -1;
+            history PointHistoryByCustomer
+                set customer = customer, pointYear = pointYear, point = point * -1, comments=$sheet_no
+                , pointType = EnumPointType.used, source = EnumPointChangingSource.exchange;            
         } 
         STATE TO CANCELED;
     }
@@ -234,30 +266,6 @@ STATE Shipping {
 STATE CANCELED {
 
 };
-
-MAP CustomerCoupon (
-    key webUser ID WebUser,     -- WebUser编号，不是Customer
-    coupon int,
-    createDate date,
-    expiredDate date,
-);
-
-MAP WebUserCredits (
-    key webUser ID WebUser,     -- WebUser编号，不是Customer
-    key credits int not null,
-    creditsCode int not null,
-    createDate date,
-    expiredDate date,
-) ON ADD{
-    bus couponDrawedBus.creditsDrawedByWebUser set webUser = webUser, coupon = credits, createDate = createDate, expiredDate = expiredDate;
-};
-
-MAP WebUserCreditsUsed (
-    key webUser ID WebUser,     -- WebUser编号，不是Customer
-    key credits int not null,
-    key saleOrder char(50),
-    usedDate date,
-);
 
 /*
  * 有关产品的浏览量/兑换量统计

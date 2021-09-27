@@ -26,3 +26,14 @@ returns ret (
     where   code = code and isValid = 1 and validitydate > now() and customer = $user;
 };
 */
+
+IX IxOrderMainCustomerCoupon (
+    ixx,    -- orderMain
+    ix,     -- endUser
+    xi,     -- credits
+);
+
+IX IxOrderDetailCoupon (
+    ix,     -- orderDetail
+    xi,     -- credits
+);

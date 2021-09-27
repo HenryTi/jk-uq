@@ -1,0 +1,13 @@
+BUS fiRBus from 百灵威系统工程部/FiReceivable
+ACCEPT innerOrderPaid {
+    BUS JkOrderBus.[receive-done] SET id=null;
+    if (action = 1) {
+        WITH DxOrderDetail as a ID = orderDetailId set a.receiveDone += amount;
+        BUS JkOrderBus.[receive-done] INTO detail 
+            ADD id = null, orderdetail = orderDetailId, value = amount;
+    } else {
+        WITH DxOrderDetail as a ID = orderDetailId set a.receiveDone -= amount;
+        BUS JkOrderBus.[receive-done] INTO detail 
+            ADD id = null, orderdetail = orderDetailId, value = amount * -1;
+    }	
+};
