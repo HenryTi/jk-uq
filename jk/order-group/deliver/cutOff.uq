@@ -103,8 +103,7 @@ RETURNS main (
     VAR cutOffMain ID, cutOffMainNo CHAR(20);	
 	SET cutOffMainNo = NO(CutOffMain);
 	SET cutOffMain = ID(CutOffMain new, cutOffMainNo);
-	WITH CutOffMain as a ID = cutOffMain SET a.no = cutOffMainNo, a.warehouse = warehouse, a.cutter = $user;
-	WITH DxDelivering as a ID = deliverMainId;
+	WITH CutOffMain as a ID = cutOffMain SET a.no = cutOffMainNo, a.warehouse = aWarehouse, a.cutter = $user;
 	BUS JkOrderBus.pickup SET cutOffMain=cutOffMain, warehouse=aWarehouse;
 
     -- 3、生成发运单、临时理货号, 并删除已截单的数据
@@ -152,6 +151,7 @@ RETURNS main (
 		WITH DeliverDetail as a ID = deliverDetailId SET a.main = deliverMainId, a.quantity = quantity;
 		WITH DeliverDetailOrderDetail ix = deliverDetailId xi = orderDetail;
 		WITH DxDeliverDetail as a ID = deliverDetailId SET a.showPrice = showPrice, a.json = json;
+		WITH DxDelivering as a ID = deliverMainId;
 		WITH DxDeliverMain as a ID = deliverMainId SET a.rows = a.rows + 1;
 		
 		BUS JkOrderBus.pickup INTO detail
