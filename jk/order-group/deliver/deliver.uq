@@ -16,12 +16,14 @@ ID DeliverMain GLOBAL(
 
 IDX DxDeliverMain (
     id,										-- deliver main id
-    staff ID,								-- 发运人
     rows SMALLINT DEFAULT 0,				-- Deliver中包含的DeliverDetail个数
     pickRows SMALLINT DEFAULT 0,			-- 已拣货行数
     carrier ID,                             -- 承运方
     waybillNumber char(50),                 -- 运单号
-    deliverTime TIMESTAMP DEFAULT NULL,		-- 发运时间
+    deliverTime TIMESTAMP DEFAULT NULL,		-- 发运时间,
+	staff ID,								-- 发运人
+	startTime TIMESTAMP,					-- 任务领用时间
+	finishTime TIMESTAMP					-- 任务结束时间
 );
 
 /*
@@ -66,15 +68,15 @@ IX IxPendingDeliver (
 ACT Delivering (
 	deliver ID,
 ) {
-	WITH DxDelivering ID=deliver;
-	WITH DxDeliverMain ID=deliver SET staff=$user;
+	WITH DxDeliverMain ID=deliver SET staff=$user, startTime=$date;
 };
 
-/*ACT Delivered(
+ACT Delivered(
 	deliver ID,
 ){
 	WITH DxDelivering ID=deliver DEL;
-};*/
+	WITH DxDeliverMain ID=deliver SET finishTime=$date;
+};
 
 QUERY WarehousePendingDeliver(
 )
@@ -82,13 +84,11 @@ RETURNS ret (
 	warehouse ID,
 	rowCount DEC(12,2),
 ) {
-	INTO ret SELECT warehouse
-		-- , customer
-		, count(b.xi) as rowCount
+	INTO ret SELECT warehouse, count(b.xi) as rowCount
 		FROM IxUserWarehouse as a
-			LEFT JOIN IxPendingDeliver as b on a.xi=b.ixx
+			JOIN IxPendingDeliver as b on a.xi=b.ixx
 		WHERE a.ix=$user
-		GROUP BY b.ixx as warehouse; -- , b.ix as customer;
+		GROUP BY b.ixx as warehouse;
 };
 
 QUERY WarehouseDeliverMain (
@@ -105,10 +105,11 @@ RETURNS ret (
 ) {
 	INTO ret SELECT b.warehouse
 		, b.id as deliverMain, b.no
-		, b.customer, b.[$create] as create, c.rows, c.pickRows, c.staff
+		, b.customer, b.[$create] as create, d.rows, d.pickRows, d.staff
 		FROM IxUserWarehouse as a
 			JOIN DeliverMain as b ON a.xi=b.warehouse
-			LEFT JOIN DxDeliverMain as c ON b.id=c.id
+			JOIN DxDelivering as c on c.id=b.id
+			LEFT JOIN DxDeliverMain as d ON b.id=d.id
 		WHERE a.ix=$user;
 };
 
@@ -210,10 +211,11 @@ RETURNS detail (
 		WHERE a.id=deliver;
 	INTO detail SELECT a.id,
 		a.main as delivermain,			-- DeliverMain id
-		b.item, b.product,
-		a.quantity as deliverShould, c.pickDone, c.deliverDone, c.returnDone 
+		c.item, c.product,
+		a.quantity as deliverShould, d.pickDone, d.deliverDone, d.returnDone 
 		FROM DeliverDetail as a 
-			JOIN OrderDetail as b ON a.id = b.id
-			LEFT JOIN DxDeliverDetail as c ON a.id = c.id
+			JOIN DeliverDetailOrderDetail as b on b.ix=a.id
+			JOIN OrderDetail as c ON c.id = b.xi
+			LEFT JOIN DxDeliverDetail as d ON a.id = c.id
 		WHERE a.main = deliver;
 };
