@@ -41,7 +41,7 @@ ACT addWebuseEmployee (
     webuser ID [$user],
     employee ID employee
 ) {
-    BOOK WebuserEmployee(webuser, employee);
+    BOOK WebuserEmployee at(webuser, employee);
     BUS JkHr.[webuser-employee] set webuser = webuser, employee = employee;
 };
 
@@ -49,7 +49,7 @@ ACT deleteWebuseEmployee (
     webuser ID [$user],
     employee ID employee
 ) {
-    DELETE t from WebuserEmployee as t where t.webuser = webuser, t.employee = employee;
+    DELETE t from WebuserEmployee as t where t.webuser = webuser and t.employee = employee;
     BUS JkHr.[webuser-employee-deleted] set webuser = webuser, employee = employee;
 };
 
