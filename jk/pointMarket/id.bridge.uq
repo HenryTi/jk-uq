@@ -4,6 +4,48 @@ ACCEPT orderChanged {
         return;
     
     if(mark = 'C'){
+        
+        -- 兑换单取消
+        WITH DxExchagneMainState as a ID = orderMainId set a.state = EnumExchangeState.canceled, a.createDate = now();
+        
+        -- 获取兑换单积分
+        var lPoint int;
+        set lPoint = a.subAmount
+        from ExchangeDetail as a
+        where a.id = orderDetailId;
+
+        -- 获取兑换单客户、兑换单号
+        var orderMainNo char(20), customerx ID;
+        set orderMainNo = a.no, customerx = a.customer
+        from ExchangeMain as a 
+        where a.id = orderMainId; 
+
+        foreach(
+            var pointYear int, rPoint int of
+            select a.xi as pointYear, a.point as rPoint
+            from IxExchangeMainUsedPoint as a
+            where a.ix = orderMainId
+            order by a.xi
+        ){
+            var p int;
+            if( rPoint >= lPoint ){
+                set p = lPoint;
+            }else{
+                set p = rPoint;
+            }
+
+            --客户积分,兑换取消
+            book PointBookByCustomer at (customerx, pointYear) set usedPoint -= p;
+            history PointHistoryByCustomer
+                set customer = customerx, pointYear = pointYear, point = p * -1, comments = orderMainNo
+                , pointType = EnumPointType.used, source = EnumPointChangingSource.exchange;
+
+            set lPoint = lPoint - p;
+            if(lPoint <= 0){
+                break;
+            } 
+        }
+        /*
         -- 兑换单取消
         VAR sheetId ID, sheet_no char(20), customerx ID;
         set sheetId = a.sheetId, sheet_no = a.no, customerx = a.customer
@@ -21,6 +63,7 @@ ACCEPT orderChanged {
             history PointHistoryByCustomer
                 set customer = customerx, pointYear = pointYear, point = point * -1, comments = sheet_no
                 , pointType = EnumPointType.used, source = EnumPointChangingSource.exchange;         
-        } 
+        }
+        */ 
     } 
 };

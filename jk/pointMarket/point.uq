@@ -211,6 +211,11 @@ Action submit {
         return;
     }
 
+    var mainId ID;
+    set mainId = ID(ExchangeMain new, $sheet_no);
+    WITH ExchangeMain as a ID mainId set a.no = $sheet_no, a.customer = customer, a.shippingContact = shippingContact
+        , a.amount = amount, a.sheetId = $id, a.createDate = now();
+
     var leftAmount bigint;
     set leftAmount = amount;
 
@@ -235,7 +240,10 @@ Action submit {
                 history PointHistoryByCustomer
                     set customer = customer, pointYear = pointYear, point = p, comments=$sheet_no
                     , pointType = EnumPointType.used, source = EnumPointChangingSource.exchange;
-            }
+                
+                -- 兑换单使用积分明细，针对年度
+                WITH IxExchangeMainUsedPoint ix = mainId xi = pointYear set point = p;
+            } 
 
             set leftAmount = leftAmount - p;
             if(leftAmount <= 0){
@@ -243,11 +251,6 @@ Action submit {
             }
         }
     }
-
-    var mainId ID;
-    set mainId = ID(ExchangeMain new, $sheet_no);
-    WITH ExchangeMain as a ID mainId set a.no = $sheet_no, a.customer = customer, a.shippingContact = shippingContact
-        , a.amount = amount, a.sheetId = $id, a.createDate = now();
 
     bus pointBus.pointExchangeSheet set id = $id, no = $sheet_no, ExchangeMainId = mainId, customer = customer,
         shippingContact = shippingContact, amount = amount;

@@ -28,3 +28,10 @@ IDX DxExchagneMainState (
     createDate datetime,
     index idx_state,
 );
+
+--兑换单使用积分明细, D72, 2021年9月27日
+IX IxExchangeMainUsedPoint (
+	ix,    --ExchangeMain
+	xi,    --PointYear
+	point DEC(12,2),
+);
