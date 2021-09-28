@@ -37,6 +37,16 @@ OPEN MAP WebuserEmployee(
     key employee ID employee
 );
 
+QUERY getWebUser(employee ID Employee)
+returns ret (
+    webuser ID [$user],
+    employee ID employee
+){
+    into ret select a.webuser, a.employee
+    from WebuserEmployee as a
+    where   a.employee = employee; 
+};
+
 ACT addWebuseEmployee (
     webuser ID [$user],
     employee ID employee
@@ -52,6 +62,10 @@ ACT deleteWebuseEmployee (
     DELETE t from WebuserEmployee as t where t.webuser = webuser and t.employee = employee;
     BUS JkHr.[webuser-employee-deleted] set webuser = webuser, employee = employee;
 };
+
+
+
+
 
 -- 这些表疑似可删除
 OPEN MAP EmployeeRelation (
