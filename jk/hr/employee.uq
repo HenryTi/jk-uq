@@ -11,7 +11,7 @@ OPEN TUID employee (
     search(name),
 );
 
---岗位/角色表
+-- 岗位/角色表  -- 这些表疑似可删除
 OPEN TUID Role (
     id,
     main no char(50) not null,
@@ -23,7 +23,7 @@ OPEN TUID Role (
     search(name),
 );
 
---员工与角色的关系表
+--员工与角色的关系表-- 这些表疑似可删除
 OPEN MAP EmployeeRole (
     key employee ID employee,
     key role ID Role,
@@ -31,12 +31,29 @@ OPEN MAP EmployeeRole (
     EndTime datetime,    --结束时间
 );
 
---员工和内部关联关系
+-- 员工的employeeId与其webuser关联表 
 OPEN MAP WebuserEmployee( 
-    key webuser ID [$user], --负责人
+    key webuser ID [$user],
     key employee ID employee
 );
 
+ACT addWebuseEmployee (
+    webuser ID [$user],
+    employee ID employee
+) {
+    BOOK WebuserEmployee(webuser, employee);
+    BUS JkHr.[webuser-employee] set webuser = webuser, employee = employee;
+};
+
+ACT deleteWebuseEmployee (
+    webuser ID [$user],
+    employee ID employee
+) {
+    DELETE t from WebuserEmployee as t where t.webuser = webuser, t.employee = employee;
+    BUS JkHr.[webuser-employee-deleted] set webuser = webuser, employee = employee;
+};
+
+-- 这些表疑似可删除
 OPEN MAP EmployeeRelation (
     key parent ID employee,
     key child ID employee
@@ -65,27 +82,6 @@ PAGE (
     where   e.id > $pageStart and (e.title like key2 or e.name like key2 )
     order by e.id
     limit $pageSize;
-};
-
- 
-/** 搜索员工名称
- * 删除，不再使用， ligsh， 20210721
-*/
-QUERY SearchEmployeeByid(
-    _id ID [$user]
-)
-returns ret (
-    id ID employee,
-    name char(30),
-    firstName char(20),
-    lastName char(20),
-    title char(20),
-   
-) {
-    into ret select e.id, e.name, e.firstName, e.lastName, e.title
-    from    WebuserEmployee as w
-            join employee as e on w.employee = e.id
-    where   w.webuser = _id;
 };
 
 /** 搜索员工*/
