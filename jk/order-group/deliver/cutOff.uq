@@ -79,10 +79,11 @@ RETURNS ret (
 ) {
     INTO ret SELECT b.warehouse
         , b.id as cutOffMain, b.no
-        , b.cutter, b.[$create] as create, c.ix as staff
+        , b.cutter, b.[$create] as create, d.staff
     FROM CutOffProcessing as a
         join cutOffMain as b on a.xi = b.id
         join IxUserWarehouse as c on c.xi = b.warehouse
+		left join DxCutOffMain as d on d.id=b.id
     WHERE c.ix = $user;
 };
 
@@ -126,7 +127,7 @@ RETURNS main (
 
 		IF warehouse IS NULL {
 			BREAK;
-		}        
+		}
         -- 从任务表中删除已获取到的当前数据
 		DELETE a FROM IxPendingDeliver as a
         WHERE a.ixx=warehouse AND a.ix=cutOffType AND a.xi=orderDetail;
@@ -139,8 +140,8 @@ RETURNS main (
 
 		IF deliverMainId IS NULL {
 			SET deliverMainId = ID(DeliverMain new, NO(DeliverMain));
-			WITH DeliverMain as a ID = deliverMainId 
-                SET a.customer = customerAccount, a.contact=contact, a.warehouse=warehouse
+			WITH DeliverMain as a ID = deliverMainId
+                SET a.customer = customerAccount, a.contact = contact, a.warehouse = warehouse
                 , a.cutOffMain = cutOffMain, a.trayNumber = trayNumber;
 
 			INTO tblCutOff SELECT warehouse, customerAccount, contact, deliverMainId as deliver;
@@ -155,7 +156,7 @@ RETURNS main (
 		WITH DxDeliverMain as a ID = deliverMainId SET a.rows = a.rows + 1;
 		
 		BUS JkOrderBus.pickup INTO detail
-			ADD id=deliverDetailId, orderDetail=orderDetail, quantity=quantity, lotNumber=lotNumber;
+			ADD id = deliverDetailId, orderDetail = orderDetail, quantity = quantity, lotNumber = lotNumber;
 	}
 	LOG 'CutOff' SUBJECT 'end';
 	WITH CutOffProcessing ixx = aWarehouse ix = cutOffType xi = cutOffMain;
@@ -195,15 +196,16 @@ RETURNS detail (
 		WHERE a.id=cutOffMain;
 
 	INTO detail SELECT b.id as delivermain, b.trayNumber,
-		b.contact, b.customer, f.carrier, f.waybillNumber, f.deliverTime,
-		c.id as deliverDetail, d.item, d.product, e.pickDone as tallyShould, 
-		d.price, d.lotNumber, e.json as content
+		b.contact, b.customer, g.carrier, g.waybillNumber, g.deliverTime,
+		c.id as deliverDetail, e.item, e.product, f.pickDone as tallyShould, 
+		e.price, e.lotNumber, f.json as content
 		FROM CutOffMain as a
 			JOIN DeliverMain as b on a.id=b.cutOffMain
 			JOIN DeliverDetail as c on b.id=c.main
-			JOIN OrderDetail as d ON c.id=d.id
-			LEFT JOIN DxDeliverDetail as e ON d.id=e.id
-			LEFT JOIN DxDeliverMain as f on f.id=b.id
+			JOIN DeliverDetailOrderDetail as d on d.ix=c.id
+			JOIN OrderDetail as e ON e.id=d.xi
+			LEFT JOIN DxDeliverDetail as f ON f.id=c.id
+			LEFT JOIN DxDeliverMain as g on g.id=b.id
 		WHERE a.id=cutOffMain;
 };
 

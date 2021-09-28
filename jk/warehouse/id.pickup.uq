@@ -233,7 +233,7 @@ RETURNS ret (
 		, b.picker
 		FROM IxUserWarehouse as a
 			JOIN Pickup as b ON a.xi=b.warehouse
-			JOIN JOIN DxPicking as c ON c.id=b.id
+			JOIN DxPicking as c ON c.id=b.id
 		WHERE a.ix=$user;
 };
 
