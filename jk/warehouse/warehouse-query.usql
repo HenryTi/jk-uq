@@ -230,9 +230,10 @@ returns ret(
 QUERY GetExpressLogisticsList()
 returns ret(
     id ID,
-    name char(50)
+    name char(50),
+    no char(10)
 ){
-    Into ret select a.id, a.name
+    Into ret select a.id, a.name, a.no
     from    ExpressLogistics as a
     where   a.isvalid = 1;
 };
