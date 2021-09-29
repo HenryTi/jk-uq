@@ -1,0 +1,23 @@
+BUS orderbus ver 0.4 from [百灵威系统工程部]/order
+    ACCEPT order {
+        if(customer is null)
+            return;
+
+        VAR currentBound ID, boundDate date, boundDays smallint;
+        SET currentBound = a.xi, boundDate = a.boundDate, boundDays = a.boundDays
+        from CustomerBound as t where t.ix = customer;
+
+        if(coupon > 0) {
+            VAR couponSender ID;
+            SET couponSender = a.creator from Coupon as t where t.id = coupon;
+            if(currentBound <> couponSender and dateadd(days, boundDays, boundDate) < date(now())){
+                WITH CustomerBound ix = customerX xi = couponSender set boundDate = date(now()); 
+                HISTORY CustomerBoundHistory 
+                    set customerX = customerX, boundTo = currentBound, operation = 0;
+                HISTORY CustomerBoundHistory 
+                    set customerX = customerX, boundTo = couponSender, operation = 1;
+            }
+        }else{
+            WITH CustomerBound ix = customerX xi = currentBound set boundDate = date(now()); 
+        }
+    };

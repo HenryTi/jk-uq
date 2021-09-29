@@ -10,7 +10,6 @@ HISTORY CustomerBoundHistory (
     customer    ID,
     boundTo    ID,
     operation   tinyint,    -- 1:绑定；0:解绑
-    createDate TIMESTAMP,
 );
 
 IX WebUserBound (
@@ -18,4 +17,11 @@ IX WebUserBound (
     xi,     -- salesman webuser
     boundDate   date,
     boundDays   smallint,
+);
+
+HISTORY WebUserBoundHistory (
+    date,
+    webuser    ID,
+    boundTo    ID,
+    operation   tinyint,    -- 1:绑定；0:解绑
 );
