@@ -30,12 +30,10 @@ ACCEPT deliver {
 	}
 }
 ACCEPT [pickup-done] {
-	FOR detail {
-		VAR main INT;
-		SET main=a.main FROM DeliverDetail as a WHERE a.id=id;
-		WITH DxDeliverDetail as a ID = id SET a.pickDone += value;
-		WITH DxDeliverMain as a ID=main SET a.pickRows=a.pickRows+1;
-	}
+	VAR main INT;
+	SET main = a.main FROM DeliverDetail as a WHERE a.id = deliverDetail;
+	WITH DxDeliverDetail as a ID = deliverDetail SET a.pickDone = quantity;
+	WITH DxDeliverMain as a ID = main SET a.pickRows = a.pickRows + 1;
 }
 ACCEPT [return] {
 	VAR customerAccount ID;

@@ -16,7 +16,8 @@ ID PickupDetail (
     -- storePoint ID,
     shelfBlock ID,
 	quantity DEC(12,2),
-	pickQuantity DEC(12,2)
+	pickDone dec(12, 2) DEFAULT 0, 
+	pickState TINYINT DEFAULT 0,			-- 拣货状态：0 未完成，1已完成;
 );
 
 IDX DxPicking (
@@ -65,22 +66,29 @@ ACT Picking (
 	pickup ID,
 ) {
 	WITH DxPicking ID=pickup;
-	WITH Pickup ID=pickup SET picker=$user, startTime=$date;
+	WITH Pickup ID=pickup SET picker=$user, startTime=$date, finishTime=null;
+};
+
+ACT PickedSingle(
+	pickupDetail ID,
+	quantity dec(18, 4)
+){
+	WITH pickupDetail ID=pickupDetail SET pickDone=quantity, pickState=1;
 };
 
 ACT Picked (
 	pickup ID,
-	-- 实际拣货数量。
 	ARR detail (
-		id ID,
-		orderDetail ID,
-		quantity DEC(12,2),
+		deliverDetail ID,	-- 发货单明细id
+		quantity DEC(12,2)	-- 实际拣货数
 	)
 ) {
 	WITH DxPicking ID=pickup DEL;
 	WITH Pickup ID=pickup SET finishTime=$date;
 	FOR detail {
-		BUS JkOrderBus.[pickup-done] INTO detail ADD id=id, orderDetail=orderDetail, value=quantity;
+		-- todo：检查出库数与拣货数不一致的话，生成退货
+		-- 拣货完成
+		BUS JkOrderBus.[pickup-done] SET deliverDetail = deliverDetail, quantity = quantity;
 	}
 };
 
@@ -254,10 +262,12 @@ RETURNS detail (
 	deliverDetail ID,
 	orderDetail ID,
 	shelfBlock ID,
-	quantity DEC(12,2),
 	item ID,
 	product ID,
-	shouldQuantity DEC(12,2)
+	shouldQuantity DEC(12,2),
+	pickdone DEC(12,2),
+	pickstate TINYINT,
+	lotNumber char(50)
 ) {
 	INTO main SELECT a.id, a.no
 		, a.warehouse, a.picker, a.startTime, a.finishTime
@@ -268,9 +278,9 @@ RETURNS detail (
         a.deliverDetail,
 		a.orderDetail,
         a.shelfBlock,
-		a.quantity,
 		b.item, b.product,
-		a.quantity as shouldQuantity
-		FROM PickupDetail as a JOIN OrderDetail as b ON a.orderDetail=b.id
+		a.quantity as shouldQuantity, a.pickdone, a.pickstate, b.lotNumber
+		FROM PickupDetail as a 
+			JOIN OrderDetail as b ON a.orderDetail=b.id
 		WHERE a.main=pickup;
 };

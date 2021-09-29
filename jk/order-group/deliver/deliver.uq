@@ -38,6 +38,8 @@ IDX DxDeliverDetail (
     id,
 	deliverDone DEC(12,2) DEFAULT 0,		-- 已发
     pickDone dec(12, 2) DEFAULT 0 SUM, 
+	tallyDone dec(12, 2) DEFAULT 0,			-- 已理
+	tallyState TINYINT DEFAULT 0,			-- 理货状态：0 未完成，1已完成;
 	deliverReturn DEC(12,2) SUM,			-- 应退货
     returnDone dec(12, 2) DEFAULT 0,
 	-- 此次发货的特殊要求保存在此处

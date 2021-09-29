@@ -8,7 +8,7 @@ ID CutOffMain (
     INDEX idx_warehouse(warehouse),
 );
 
--- 正在处理中的截单
+-- ?
 IX CutOffProcessing (
     ixx warehouse,
     ix CutOffType,
@@ -21,6 +21,11 @@ IDX DxCutOffMain (
     staff ID,				-- 理货人
     startTime TIMESTAMP,
     finishTime TIMESTAMP
+);
+
+-- 正在处理中的理货单
+IDX Talling (
+    id,
 );
 
 /* 查询库房待截单数据 */
@@ -80,8 +85,8 @@ RETURNS ret (
     INTO ret SELECT b.warehouse
         , b.id as cutOffMain, b.no
         , b.cutter, b.[$create] as create, d.staff
-    FROM CutOffProcessing as a
-        join cutOffMain as b on a.xi = b.id
+    FROM Talling as a
+        join cutOffMain as b on a.id = b.id
         join IxUserWarehouse as c on c.xi = b.warehouse
 		left join DxCutOffMain as d on d.id=b.id
     WHERE c.ix = $user;
@@ -159,7 +164,8 @@ RETURNS main (
 			ADD id = deliverDetailId, orderDetail = orderDetail, quantity = quantity, lotNumber = lotNumber;
 	}
 	LOG 'CutOff' SUBJECT 'end';
-	WITH CutOffProcessing ixx = aWarehouse ix = cutOffType xi = cutOffMain;
+	-- WITH CutOffProcessing id = cutOffMain;  -- ixx = aWarehouse xi = cutOffMain ix = cutOffType
+	WITH Talling as a id = cutOffMain;
     INTO main SELECT cutOffMain as id, cutOffMainNo as no;
 };
 
@@ -186,6 +192,8 @@ RETURNS detail (
 	item ID,
 	product ID,
 	tallyShould DEC(12,2),
+	tallyDone DEC(12,2),
+	tallyState TINYINT,
 	price DEC(12,2),
 	lotNumber char(50),
 	content text
@@ -197,8 +205,8 @@ RETURNS detail (
 
 	INTO detail SELECT b.id as delivermain, b.trayNumber,
 		b.contact, b.customer, g.carrier, g.waybillNumber, g.deliverTime,
-		c.id as deliverDetail, e.item, e.product, f.pickDone as tallyShould, 
-		e.price, e.lotNumber, f.json as content
+		c.id as deliverDetail, e.item, e.product, c.quantity as tallyShould, 
+		f.tallyDone, f.tallyState, e.price, e.lotNumber, f.json as content
 		FROM CutOffMain as a
 			JOIN DeliverMain as b on a.id=b.cutOffMain
 			JOIN DeliverDetail as c on b.id=c.main
@@ -213,22 +221,46 @@ RETURNS detail (
 ACT Tallying (
 	cutOffMain ID,
 ) {
-	WITH DxCutOffMain ID=cutOffMain SET staff=$user,startTime=$date;
+	WITH DxCutOffMain ID=cutOffMain SET staff=$user, startTime=$date, finishTime=null;
 };
 
-/* 理货完成 */
-ACT Tallied (
+/* 单个理货完成 */
+ACT TallyDoneSingle(
+	deliverMain ID,
+	deliverDetail ID,
+	quantity DEC(12,2)
+){
+	WITH DxDeliverDetail as a ID = deliverDetail SET a.tallyDone = quantity, a.tallyState = 1;
+	WITH DxDeliverMain as a ID = deliverMain SET a.pickRows=a.pickRows+1;
+};
+
+/* 整体理货完成 */
+ACT TallyDone (
+	-- warehouse ID,
+	-- cutOffType ID
 	cutOffMain ID,
-	-- 实际理货数量
-	ARR detail (
-		orderDetail ID,
-		quantity DEC(12,2)
-	)
-) {
-    WITH DxCutOffMain ID=cutOffMain SET finishTime=$date;
+){
+	WITH DxCutOffMain ID=cutOffMain SET finishTime=$date;
+	-- WITH CutOffProcessing ix=cutOffMain DEL;	-- ixx=warehouse xi=cutOffMain ix=cutOffType
+	WITH Talling id = cutOffMain DEL;
 };
 
 /*
+ACT tallyComplete (
+	warehouse ID,
+	cutOffMain ID,
+	cutOffType ID,
+	-- 实际理货数量
+	ARR detail (
+		deliverDetail ID,
+		quantity DEC(12,2)
+	)
+) {
+	WITH DxCutOffMain ID=cutOffMain SET finishTime=$date;
+	-- WITH CutOffProcessing ix=cutOffMain DEL;	-- ixx=warehouse xi=cutOffMain ix=cutOffType
+	WITH Talling id = cutOffMain DEL;
+};
+
 -- 查询截单类型列表
 QUERY GetCutOffTypeList(
 )RETURNS list (
