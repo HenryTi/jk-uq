@@ -70,12 +70,20 @@ IX IxPendingDeliver (
 ACT Delivering (
 	deliver ID,
 ) {
-	WITH DxDeliverMain ID=deliver SET staff=$user, startTime=$date;
+	-- 发现问题，startTime或者finishTime任意修改其中一项，结果两个都会变。。
+	WITH DxDeliverMain ID=deliver SET staff=$user, startTime=$date, finishTime=null;
 };
 
 ACT Delivered(
 	deliver ID,
+	ARR detail (
+		deliverDetail ID,	-- 发货单明细id
+		quantity DEC(12,2)	-- 实际发货数
+	)
 ){
+	FOR detail {
+		WITH DxDeliverDetail as a ID = deliverDetail SET a.deliverDone = quantity;
+	}
 	WITH DxDelivering ID=deliver DEL;
 	WITH DxDeliverMain ID=deliver SET finishTime=$date;
 };
@@ -202,19 +210,18 @@ RETURNS detail (
 	product ID,
 	deliverShould DEC(12,2),
 	pickDone DEC(12,2),
-	deliverDone DEC(12,2),
 	returnDone DEC(12,2)
 ) {
 	INTO main SELECT a.id, 
 		a.no, a.customer, a.contact, a.warehouse,
-		b.staff, b.rows, b.pickRows, b.deliverTime 
+		b.staff, b.rows, b.pickRows, b.deliverTime
 		FROM DeliverMain as a
 			LEFT JOIN DxDeliverMain as b ON a.id=b.id
 		WHERE a.id=deliver;
 	INTO detail SELECT a.id,
 		a.main as delivermain,			-- DeliverMain id
 		c.item, c.product,
-		a.quantity as deliverShould, d.pickDone, d.deliverDone, d.returnDone 
+		a.quantity as deliverShould, d.pickDone, d.returnDone 
 		FROM DeliverDetail as a 
 			JOIN DeliverDetailOrderDetail as b on b.ix=a.id
 			JOIN OrderDetail as c ON c.id = b.xi
