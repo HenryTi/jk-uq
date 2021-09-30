@@ -290,35 +290,6 @@ STATE Shipping {
     }
 }
 STATE CANCELED {
-    ACTION TEST {
-        VAR mainId ID;
-        SET mainId = a.id from ExchangeMain as a where a.sheetId = $id;
-        if(mainId is null){
-            SET mainId = ID(ExchangeMain new, $sheet_no);
-        }
-        WITH ExchangeMain as a ID mainId set a.no = $sheet_no, a.customer = customer, a.shippingContact = shippingContact
-            , a.amount = amount, a.sheetId = $id, a.createDate = $sheet_date;
-
-        foreach exchangeItems {
-            VAR detailId ID;
-            SET detailId = null;
-            SET detailId = a.id from ExchangeDetail as a where a.main = mainId and a.item = product;
-            if(detailId is null) {
-                SET detailId = ID(ExchangeDetail new);
-            }
-            WITH ExchangeDetail as a ID detailId set a.main = mainId, a.item = product
-                , a.quantity = quantity, a.point = point, a.subAmount = subAmount;
-        }
-        
-        VAR state int;
-        if($state = 'shipping')
-            SET state = EnumExchangeState.delivering;
-        if($state = '$')
-            SET state = EnumExchangeState.canceled;
-        if($state = 'canceled')
-            SET state = EnumExchangeState.canceled;
-        WITH DxExchangeMainState as a ID = mainId set a.state = state, a.createDate = now();
-    }
 };
 
 /*
