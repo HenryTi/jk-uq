@@ -64,7 +64,8 @@
         "detail: pickup-detail"
     ],
     "pickup-done": [
-        "detail: note-detail"
+        "deliverDetail: id",
+        "quantity: number"
     ],
     "receive": [
         "note"
