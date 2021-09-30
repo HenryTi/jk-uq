@@ -6,7 +6,7 @@ ACCEPT orderChanged {
     if(mark = 'C'){
         
         -- 兑换单取消
-        WITH DxExchagneMainState as a ID = orderMainId set a.state = EnumExchangeState.canceled, a.createDate = now();
+        WITH DxExchangeMainState as a ID = orderMainId set a.state = EnumExchangeState.canceled, a.createDate = now();
         
         -- 获取兑换单积分
         var lPoint int;

@@ -179,7 +179,7 @@ PAGE (
     SELECT  a.`id`, a.no, a.createDate as date, os.state, a.`id` as seq
     FROM    tv_exchangemain a
             inner join tv_exchangedetail b on b.main = a.id
-            left join tv_dxexchagnemainstate os ON os.id = a.id
+            left join tv_DxExchangeMainState os ON os.id = a.id
     WHERE a.id > `_$pagestart` and a.customer = `_customer`
     LIMIT   `_$pagesize`;
     -/
