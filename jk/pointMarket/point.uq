@@ -301,6 +301,7 @@ STATE CANCELED {
 
         foreach exchangeItems {
             VAR detailId ID;
+            SET detailId = null;
             SET detailId = a.id from ExchangeDetail as a where a.main = mainId and a.item = product;
             if(detailId is null) {
                 SET detailId = ID(ExchangeDetail new);
