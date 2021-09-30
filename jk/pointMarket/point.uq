@@ -265,7 +265,7 @@ Action submit {
         bus pointBus.pointExchangeSheet into exchangeItems add exchangeDetailId = detailId, product = product
             , source = source, sourceId = sourceId, quantity = quantity, point = point, subAmount = subAmount;
     }
-    WITH DxExchangeMainState as a ID = mainId set a.state = EnumExchangeState.delivering;
+    WITH DxExchangeMainState as a ID = mainId set a.state = EnumExchangeState.delivering, a.createDate = now();
     STATE TO Shipping;
 }
 -- 前台界面需修改：未审核的新webuser不能兑换产品，需要新进行审核，界面上要有提示
@@ -285,7 +285,7 @@ STATE Shipping {
 
         VAR mainId ID;
         set mainId = a.id from ExchangeMain as a where a.sheetId = $id;
-        WITH DxExchangeMainState as a ID = mainId set a.state = EnumExchangeState.canceled;
+        WITH DxExchangeMainState as a ID = mainId set a.state = EnumExchangeState.canceled, a.createDate = now();
         STATE TO CANCELED;
     }
 }
@@ -310,13 +310,13 @@ STATE CANCELED {
         }
         
         VAR state int;
-        if($state = 23)
+        if($state = 'shipping')
             SET state = EnumExchangeState.delivering;
-        if($state = 1)
+        if($state = '$')
             SET state = EnumExchangeState.canceled;
-        if($state = 25)
+        if($state = 'canceled')
             SET state = EnumExchangeState.canceled;
-        WITH DxExchangeMainState as a ID = mainId set a.state = state;
+        WITH DxExchangeMainState as a ID = mainId set a.state = state, a.createDate = now();
     }
 };
 
