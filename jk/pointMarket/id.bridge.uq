@@ -1,6 +1,6 @@
 BUS oChangeBus ver 0.7 FROM 百灵威系统工程部/orderChanged
 ACCEPT orderChanged {
-    if(source <> 'pointExchangeDetail')
+    if(ifnull(source,'') <> 'pointExchangeDetail')
         return;
     
     if(mark = 'C'){
