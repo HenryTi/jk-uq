@@ -4,9 +4,7 @@ MAP WebUserCredits (
     creditsCode int not null,
     createDate date,
     expiredDate date,
-) ON ADD{
-    bus couponBus.creditsDrawedByWebUser set webUser = webUser, coupon = credits, createDate = createDate, expiredDate = expiredDate;
-};
+);
 
 MAP WebUserCreditsUsed (
     key webUser ID WebUser,     -- WebUser编号，不是Customer
