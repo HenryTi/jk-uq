@@ -5,21 +5,6 @@ BUS ps2Bus from [百灵威系统工程部]/pointShop2;
  * 接收从内部系统导入的积分
 */
 BUS pointBus from [百灵威系统工程部]/pointShop
-    ACCEPT customerPoint 
-    BUS webUserBus.getWuByCu as q into tb {
-        set q.customer = customer;
-    } {
-        -- 根据customer获取webuser
-        var webUserid ID [$user];
-        foreach tb {
-            set webUserid = webUser;
-        }
-        -- 同时将临时积分清空
-        if( not webUserid is null ){
-            book PointBook at (webUserid, pointYear) set point = point, totalPoint = totalPoint, usedPoint = usedPoint,
-            tempPoint = 0;
-        }
-    }
     /*
     * 在joint中发送bus，此处接收，用于将积分可兑换产品从老系统同步到tonva
     * 2020/11/10, 此bus作废不再使用
@@ -37,34 +22,6 @@ BUS pointBus from [百灵威系统工程部]/pointShop
                 grade = grade, point = point, startDate = from_unixtime(startDate), endDate = from_unixtime(endDate), imageUrl = imageUrl,
                 isValid = isValid; 
         }
-    };
-
-/*
- * webUser使用了credits后，删除该webUser领用的credits
-*/
-bus couponBus from 百灵威系统工程部/coupon
-    ACCEPT creditsUsedByWebUser 
-    BUS webUserBus.getCuByWu as q into tb {
-        set q.webUser = webUser;
-    }{
-        var pointYear int;
-        set pointYear = YEAR(NOW());
-        book PointBook at (webUser, pointYear) set tempPoint += point;
-        history PointHistory
-            set webUser = webuser, pointYear = pointYear, source = 1, point = point, comments = orderid;
-
-        /*
-        --积分券下单添加客户积分
-        var customerId int;
-        foreach tb {
-            set customerId = customer;
-        }
-        if(customerId > 0){
-            book PointBookByCustomer at (customerId, pointYear) set totalpoint += point;
-            history PointHistoryByCustomer 
-                set pointYear = pointYear, point = point, source = 1, comments = orderid, customer = customerId;
-        }
-        */
     };
 
 BUS webUserBus from [百灵威系统工程部]/WebUser
