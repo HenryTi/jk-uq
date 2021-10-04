@@ -29,6 +29,7 @@ IDX DxDeliverMain (
 ID DeliverDetail GLOBAL(
     id,                     -- 
     main ID DeliverMain,    -- DeliverMain id	
+	orderDetail ID,			-- OrderDetail ID
     quantity dec(18, 4),
 );
 

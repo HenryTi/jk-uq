@@ -24,6 +24,15 @@
         "orderdetail: id",
 		"value: number"
 	],
+	"note": [
+		"id: id",
+		"detail: note-detail"
+	],
+	"note-detail": [
+		"id: id",
+        "orderdetail: id",
+		"value: number"
+	],
 	"deliver-detail": [
 		"id: id  -- order detail id",
 		"quantity: number  -- 同一个合同明细可能会分多次不同数量发送",

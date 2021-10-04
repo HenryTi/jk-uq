@@ -86,8 +86,14 @@ ACT DoneReceive ver 0.2 (
 		amount DEC(12,2),
 	)
 ) {
-	BUS JkOrderBus.[receive-done] SET id=null;
+	VAR receiveMainId ID;
+	SET receiveMainId=ID(ReceiveMain new);
+	BUS JkOrderBus.[receive-done] SET id=receiveMainId;
 	FOR detail {
+		VAR receiveDetailId ID;
+		SET receiveDetailId=ID(ReceiveDetail new);
+		WITH ReceiveDetail as a ID=receiveDetailId 
+			SET a.main=receiveMainId, a.orderDetail=orderDetail, a.amount=amount;
 		IF amount IS NULL CONTINUE;
 		IF amount>0 {
 			WITH DxOrderDetail as a ID=orderDetail SET a.receiveDone=amount;
@@ -98,7 +104,7 @@ ACT DoneReceive ver 0.2 (
 		WITH IxCustomerPendingReceive IX=customer XI=orderDetail DEL;
         WITH DxCustomerReceive ID=customer SET sumAmount -= amount;
 		BUS JkOrderBus.[receive-done] INTO detail 
-			ADD id=orderDetail, value=amount;
+			ADD id=receiveDetailId, orderDetail=orderDetail, value=amount;
 	}
     WITH DxCustomerReceive as a ID=customer DEL WHERE a.sumAmount = 0;
 };
