@@ -2,10 +2,10 @@ ID Pickup (
 	id,
 	KEY no,
 	warehouse ID,
-	picker ID,				-- 拣货人
+	picker ID,
 	startTime TIMESTAMP,
 	finishTime TIMESTAMP,
-	sys(create)
+	sys(create, owner),	
 );
 
 ID PickupDetail (
@@ -16,11 +16,10 @@ ID PickupDetail (
     -- storePoint ID,
     shelfBlock ID,
 	quantity DEC(12,2),
-	pickQuantity DEC(12,2)
 );
 
 IDX DxPicking (
-	id,						-- pickup id
+	id,							-- pickup id
 );
 
 ID WarehouseN;
@@ -50,123 +49,6 @@ IX IxPendingPickup (
     quantity dec(18, 4),
     lotNumber char(50),
 );
-
-ACT TrySchedule(p INT)
-{
-	LOG concat('TrySchedule ', p) SUBJECT 'test';
-};
-
-ACT TrySchedule1()
-{
-	LOG concat('TrySchedule1') SUBJECT 'test schedule';
-};
-
-ACT Picking (
-	pickup ID,
-) {
-	WITH DxPicking ID=pickup;
-	WITH Pickup ID=pickup SET picker=$user, startTime=$date;
-};
-
-ACT Picked (
-	pickup ID,
-	-- 实际拣货数量。
-	ARR detail (
-		id ID,
-		orderDetail ID,
-		quantity DEC(12,2),
-	)
-) {
-	WITH DxPicking ID=pickup DEL;
-	WITH Pickup ID=pickup SET finishTime=$date;
-	FOR detail {
-		BUS JkOrderBus.[pickup-done] INTO detail ADD id=id, orderDetail=orderDetail, value=quantity;
-	}
-};
-
--- 把当前所有待发货条目，生成发运单和拣货单
-ACT OutBound(
-	warehouse ID,
-	pickupMaxRows INT
-)
-RETURNS pickups (
-	id ID,
-	no CHAR(20),			-- 拣货单编号
-)
-RETURNS delivers (
-	id ID,
-	no CHAR(20),			-- 发运单编号
-) {
-	-- 操作权限检查
-	IF NOT exists(SELECT ix FROM IxUserWarehouse WHERE ix=$user AND xi=warehouse) {
-		RETURN;
-	}
-
-	-- 生成拣货单
-	IF pickupMaxRows IS NULL {
-		SET pickupMaxRows=1000;
-	}
-	TABLE tblPickup(key orderDetail ID);
-	WHILE 1=1 { 
-		DELETE FROM tblPickup as a WHERE 1=1;
-		INTO tblPickup SELECT a.xi as orderDetail 
-				FROM IxPendingOutBound as a
-					LEFT JOIN PickupDetail as b ON a.xi=b.id
-					LEFT JOIN DxPicking as c ON b.main=c.id
-				WHERE a.ix=warehouse
-				LIMIT pickupMaxRows;
-		IF (select count(*) from tblPickup)=0 {
-			BREAK;
-		}
-		DELETE a 
-			FROM IxPendingOutBound as a JOIN tblPickup as b ON a.xi=b.orderDetail
-			WHERE a.ix=warehouse;
-		VAR pickup ID, pickupNo CHAR(20);
-		SET pickupNo=NO(Pickup);
-		SET pickup=ID(Pickup new, pickupNo);
-		WITH Pickup as a ID=pickup SET a.warehouse=warehouse;
-		WITH DxPicking as a ID=pickup;
-		FOR (VAR orderDetail ID
-			OF SELECT a.orderDetail FROM tblPickup as a)
-		{
-			WITH PickupDetail ID=orderDetail SET main=pickup;
-		}
-		WITH DxPicking ID=pickup;
-		INTO pickups SELECT pickup as id, pickupNo as no;
-	}
-};
-
-
--- 把当前所有待发货条目，生成发运单和拣货单
--- 这个里面还缺少“出库”的记账操作，正好暂时不做
-ACT AutoOutBound ver 0.1 (
-    aWarehouse ID,
-    cutOffMain ID,
-)
-{
-	WHILE 1=1 {
-		VAR warehouse ID, deliverDetail ID, orderDetail ID, quantity dec(18, 4), lotNumber char(50);
-		SET warehouse=NULL;
-		SET warehouse = a.ix, deliverDetail = a.xi, orderDetail = a.orderDetail
-            , quantity = a.quantity, lotNumber = a.lotNumber
-			FROM IxPendingOutBound as a
-            where a.ixx = aWarehouse and a.ix = cutOffMain
-			ORDER BY a.ix, a.xi
-			LIMIT 1;
-		IF warehouse IS NULL {
-			BREAK;
-		}
-		-- DELETE a FROM IxPendingOutbound as a WHERE a.ix=warehouse AND a.xi=orderDetail;
-		-- 另外一种删除的语法
-		WITH IxPendingOutBound IXX = warehouse ix = cutOffMain xi = deliverDetail DEL;
-
-        /*
-        TODO: 这儿要添加出库的逻辑，出库后得到货架号及其数量，写入pickupdetail
-        */
-        WITH IxPendingPickup ixx = warehouse ix = cutOffMain xi = deliverDetail
-        set orderDetail = orderDetail, shelfBlock = null, quantity = quantity, lotNumber = lotNumber;
-	}
-};
 
 ACT AutoPick (
     aWarehouse ID,
@@ -216,61 +98,4 @@ ACT AutoPick (
             SET a.main=pickup, a.deliverDetail = deliverDetail, a.orderDetail = orderDetail
             , a.shelfBlock = shelfBlock, a.quantity = quantity;  --a.lotNumber = lotNumber
     }
-};
-
-QUERY WarehousePickups(
-	-- warehouse ID,
-)
-RETURNS ret (
-	warehouse ID,
-	pickup ID,
-	no CHAR(20),
-	create TIMESTAMP,
-	picker ID,
-) {
-	INTO ret SELECT b.warehouse, b.id as pickup, b.no
-		, b.[$create] as create
-		, b.picker
-		FROM IxUserWarehouse as a
-			JOIN Pickup as b ON a.xi=b.warehouse
-			LEFT JOIN DxPicking as c ON c.id=b.id
-		WHERE a.ix=$user;
-};
-
-QUERY GetPickup(
-	pickup ID,
-)
-RETURNS main (
-	id ID,
-	no CHAR(20),
-	warehouse ID,
-	picker ID,
-	startTime TIMESTAMP,
-	finishTime TIMESTAMP
-)
-RETURNS detail (
-	id ID,
-	main ID,
-	deliverDetail ID,
-	orderDetail ID,
-	shelfBlock ID,
-	quantity DEC(12,2),
-	item ID,
-	product ID,
-	shouldQuantity DEC(12,2)
-) {
-	INTO main SELECT a.id, a.no
-		, a.warehouse, a.picker, a.startTime, a.finishTime
-		-- , a.[$create], a.[$owner]
-		FROM Pickup as a WHERE a.id=pickup;
-	INTO detail SELECT a.id,
-		a.main,			-- Pickup id
-        a.deliverDetail,
-		a.orderDetail,
-        a.shelfBlock,
-		a.quantity,
-		b.item, b.product,
-		a.quantity as shouldQuantity
-		FROM PickupDetail as a JOIN OrderDetail as b ON a.orderDetail=b.id
-		WHERE a.main=pickup;
 };
