@@ -65,6 +65,6 @@ IDX DxOrderDetail ver 0.1 (
 	invoice DEC(12,2),					-- 应开票
 	invoiceDone DEC(12,2) SUM,				-- 已开票
 	invoiceTime TIMESTAMP,				-- 开票时间
-
-    deliverReturn DEC(18,4) SUM,		-- 应退货
+	invoiceReturn DEC(12,2) SUM,		-- 应退票
+	invoiceReturnDone DEC(12,2) SUM,	-- 已退票
 );

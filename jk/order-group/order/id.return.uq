@@ -21,7 +21,7 @@ ID ReturnDetail ver 0.1 GLOBAL (
 	product ID,
     quantity DEC(12,2),
 	price DEC(12,2),                    -- 实际成交价
-    amount DEC(12, 2),
+    amount dec(12, 2),
     lotNumber char(50),
     createDate TIMESTAMP,
     INDEX orderDetail(orderDetail),

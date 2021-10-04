@@ -13,14 +13,6 @@ ID ReceiveMain GLOBAL (
     createDate TIMESTAMP,
 );
 
-IDX DxReceiveMain (
-    id,
-    amount DEC(18, 4),
-    usedAmount dec(18, 4),
-    returnAmount dec(18, 4),
-    leftAmount dec(18, 4), 
-);
-
 -- 退款对应的收款记录
 IX Refund (
     ix,     -- ReceiveMain
@@ -35,6 +27,14 @@ ID ReceiveDetail GLOBAL (
     orderDetail ID OrderDetail,
     amount DEC(18,4),
     createDate TIMESTAMP,
+);
+
+IDX DxReceiveMain (
+    id,
+    sumAmount DEC(18, 4),
+    usedAmount dec(18, 4),
+    returnAmount dec(18, 4),
+    leftAmount dec(18, 4), 
 );
 
 ENUM EnumReceiveWay (bank = 1, weixin = 2, alipay = 3, cash = 4);
