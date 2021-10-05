@@ -1,3 +1,4 @@
+// 修改为接收jk-order/order, 并在该bus中增加 下单人 字段；
 BUS orderbus ver 0.4 from [百灵威系统工程部]/order
     ACCEPT order {
         var customerAccount ID;
