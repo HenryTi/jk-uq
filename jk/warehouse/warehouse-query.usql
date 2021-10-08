@@ -226,18 +226,6 @@ returns ret(
     order by b.id asc;
 };
 
--- 获取发运方式列表
-QUERY GetExpressLogisticsList()
-returns ret(
-    id ID,
-    name char(50),
-    no char(10)
-){
-    Into ret select a.id, a.name, a.no
-    from    ExpressLogistics as a
-    where   a.isvalid = 1;
-};
-
 -- 获取出入库原因列表
 Query GetOutInBoundReasonList()
 returns list(

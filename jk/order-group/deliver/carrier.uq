@@ -7,3 +7,15 @@ TUID Carrier(
     stamp(create, update),
     search(name)
 );
+
+/* 获取当前有效承运商的id和no */
+QUERY getCarrierNo()
+returns ret(
+    id ID,
+    name char(50),
+    no char(10)
+){
+    Into ret select a.id, a.name, a.no
+    from    Carrier as a
+    where   a.isvalid = 1;
+};
