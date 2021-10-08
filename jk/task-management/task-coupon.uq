@@ -19,6 +19,7 @@ MAP VIPCardForWebUser(
     key vipCardType ID VIPCardType,
 );
 
+-- 优惠券折扣设置/VIPCard折扣设置都存在该表中
 MAP VIPCardDiscount(
     key coupon ID Coupon,
     key brand ID Brand,

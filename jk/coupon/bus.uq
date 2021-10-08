@@ -1,3 +1,4 @@
+/*
 // 修改为接收jk-order/order, 并在该bus中增加 下单人 字段；
 BUS orderbus ver 0.4 from [百灵威系统工程部]/order
     ACCEPT order {
@@ -7,13 +8,13 @@ BUS orderbus ver 0.4 from [百灵威系统工程部]/order
             return;
 
         VAR currentBound ID, boundDate date, boundDays smallint;
-        SET currentBound = a.xi, boundDate = a.boundDate, boundDays = a.boundDays
+        SET currentBound = t.xi, boundDate = t.boundDate, boundDays = t.boundDays
         from CustomerBound as t where t.ix = customerAccount;
 
         if(coupon > 0) {
             VAR couponSender ID;
-            SET couponSender = a.creator from Coupon as t where t.id = coupon;
-            if(currentBound <> couponSender and dateadd(days, boundDays, boundDate) < date(now())){
+            SET couponSender = t.creator from Coupon as t where t.id = coupon;
+            if(currentBound <> couponSender and dateadd(day, boundDays, boundDate) < date(now())){
                 WITH CustomerBound ix = customerAccount xi = couponSender set boundDate = date(now()); 
                 HISTORY CustomerBoundHistory 
                     set customer = customerAccount, boundTo = currentBound, operation = 0;
@@ -24,3 +25,4 @@ BUS orderbus ver 0.4 from [百灵威系统工程部]/order
             WITH CustomerBound ix = customerAccount xi = currentBound set boundDate = date(now()); 
         }
     };
+*/
