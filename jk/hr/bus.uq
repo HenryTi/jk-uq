@@ -1,0 +1,6 @@
+BUS JkHr from 百灵威系统工程部/[jk-hr]
+    QUERY [webuser-employee-query] {
+        VAR employee ID;
+        SET employee = a.employee from WebuserEmployee as a where a.webuser = webuser;
+        INTO BUS select webuser, employee;
+    };

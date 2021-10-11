@@ -203,6 +203,19 @@ SHEET PointExchangeSheet ver 0.1 (
     shippingContact ID Contact,             --收货地址
 )
 Action submit {
+    var allPoint bigint;
+    set allPoint = sum(p.point - p.usedPoint) from PointBookByCustomer as p
+    where   p.customer = customer and p.pointYear > YEAR(NOW()) - 3;
+    if(ifnull(allPoint, 0) < amount){
+        STATE TO CANCELED;
+        return;
+    }
+
+    var mainId ID;
+    set mainId = ID(ExchangeMain new, $sheet_no);
+    WITH ExchangeMain as a ID mainId set a.no = $sheet_no, a.customer = customer, a.shippingContact = shippingContact
+        , a.amount = amount, a.sheetId = $id, a.createDate = now();
+
     var leftAmount bigint;
     set leftAmount = amount;
 
@@ -227,7 +240,10 @@ Action submit {
                 history PointHistoryByCustomer
                     set customer = customer, pointYear = pointYear, point = p, comments=$sheet_no
                     , pointType = EnumPointType.used, source = EnumPointChangingSource.exchange;
-            }
+                
+                -- 兑换单使用积分明细，针对年度
+                WITH IxExchangeMainUsedPoint ix = mainId xi = pointYear set point = p;
+            } 
 
             set leftAmount = leftAmount - p;
             if(leftAmount <= 0){
@@ -236,22 +252,20 @@ Action submit {
         }
     }
 
-    var mainId ID;
-    set mainId = ID(ExchangeMain new, $sheet_no);
-    WITH ExchangeMain as a ID mainId set a.no = $sheet_no, a.customer = customer, a.shippingContact = shippingContact
-        , a.amount = amount, a.sheetId = $id, a.createDate = now();
-
-    bus pointBus.pointExchangeSheet set id = $id, no = $sheet_no, customer = customer,
+    bus pointBus.pointExchangeSheet set id = $id, no = $sheet_no, ExchangeMainId = mainId, customer = customer,
         shippingContact = shippingContact, amount = amount;
     var source char(8), sourceId int;
     foreach exchangeItems {
         set source = type, sourceId = sourceId from PointProductSource where pointProduct = product;
-        bus pointBus.pointExchangeSheet into exchangeItems add product = product, source = source, sourceId = sourceId,
-            quantity = quantity, point = point, subAmount = subAmount;
+
         var detailId ID = ID(ExchangeDetail new);
         WITH ExchangeDetail as a ID detailId set a.main = mainId, a.item = product
             , a.quantity = quantity, a.point = point, a.subAmount = subAmount;
+
+        bus pointBus.pointExchangeSheet into exchangeItems add exchangeDetailId = detailId, product = product
+            , source = source, sourceId = sourceId, quantity = quantity, point = point, subAmount = subAmount;
     }
+    WITH DxExchangeMainState as a ID = mainId set a.state = EnumExchangeState.delivering, a.createDate = now();
     STATE TO Shipping;
 }
 -- 前台界面需修改：未审核的新webuser不能兑换产品，需要新进行审核，界面上要有提示
@@ -268,11 +282,14 @@ STATE Shipping {
                 set customer = customer, pointYear = pointYear, point = point * -1, comments=$sheet_no
                 , pointType = EnumPointType.used, source = EnumPointChangingSource.exchange;            
         } 
+
+        VAR mainId ID;
+        set mainId = a.id from ExchangeMain as a where a.sheetId = $id;
+        WITH DxExchangeMainState as a ID = mainId set a.state = EnumExchangeState.canceled, a.createDate = now();
         STATE TO CANCELED;
     }
 }
 STATE CANCELED {
-
 };
 
 /*

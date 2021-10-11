@@ -20,3 +20,18 @@ ID ExchangeDetail GLOBAL (
 	point DEC(12,2),                    -- 
     subAmount dec(12, 2)
 );
+
+ENUM EnumExchangeState (delivering=12, delivered=13, completed=14, canceled=15);
+IDX DxExchangeMainState (
+    ID,	                -- ExchangeMain
+    state ENUM EnumExchangeState,
+    createDate datetime,
+    index idx_state,
+);
+
+--兑换单使用积分明细, D72, 2021年9月27日
+IX IxExchangeMainUsedPoint (
+	ix,    --ExchangeMain
+	xi,    --PointYear
+	point DEC(12,2),
+);

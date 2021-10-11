@@ -16,12 +16,14 @@ ID DeliverMain GLOBAL(
 
 IDX DxDeliverMain (
     id,										-- deliver main id
-    staff ID,								-- 发运人
     rows SMALLINT DEFAULT 0,				-- Deliver中包含的DeliverDetail个数
     pickRows SMALLINT DEFAULT 0,			-- 已拣货行数
     carrier ID,                             -- 承运方
     waybillNumber char(50),                 -- 运单号
-    deliverTime TIMESTAMP DEFAULT NULL,		-- 发运时间
+    deliverTime TIMESTAMP DEFAULT NULL,		-- 发运时间,
+	staff ID,								-- 发运人
+	startTime TIMESTAMP,					-- 任务领用时间
+	finishTime TIMESTAMP					-- 任务结束时间
 );
 
 /*
@@ -36,6 +38,8 @@ IDX DxDeliverDetail (
     id,
 	deliverDone DEC(12,2) DEFAULT 0,		-- 已发
     pickDone dec(12, 2) DEFAULT 0 SUM, 
+	tallyDone dec(12, 2) DEFAULT 0,			-- 已理
+	tallyState TINYINT DEFAULT 0,			-- 理货状态：0 未完成，1已完成;
 	deliverReturn DEC(12,2) SUM,			-- 应退货
     returnDone dec(12, 2) DEFAULT 0,
 	-- 此次发货的特殊要求保存在此处
@@ -66,15 +70,27 @@ IX IxPendingDeliver (
 ACT Delivering (
 	deliver ID,
 ) {
-	WITH DxDelivering ID=deliver;
-	WITH DxDeliverMain ID=deliver SET staff=$user;
+	-- 发现问题，startTime或者finishTime任意修改其中一项，结果两个都会变。。
+	WITH DxDeliverMain ID=deliver SET staff=$user, startTime=$date, finishTime=null;
 };
 
-/*ACT Delivered(
+ACT Delivered(
 	deliver ID,
+	ARR detail (
+		deliverDetail ID,	-- 发货单明细id
+		orderDetail ID,		-- 订单明细id，发bus用
+		quantity DEC(12,2)	-- 实际发货数
+	)
 ){
 	WITH DxDelivering ID=deliver DEL;
-};*/
+	WITH DxDeliverMain ID=deliver SET finishTime=$date;
+	FOR detail {
+		WITH DxDeliverDetail as a ID = deliverDetail SET a.deliverDone = quantity;
+		-- Bus暂时未发，修改订单状态; 是否需要deliveryConfirm？
+		-- BUS JkOrderBus.[deliver-done] INTO detail
+        --    ADD id=deliverDetailId, orderDetail=orderDetail, value=quantity;
+	}
+};
 
 QUERY WarehousePendingDeliver(
 )
@@ -82,13 +98,11 @@ RETURNS ret (
 	warehouse ID,
 	rowCount DEC(12,2),
 ) {
-	INTO ret SELECT warehouse
-		-- , customer
-		, count(b.xi) as rowCount
+	INTO ret SELECT warehouse, count(b.xi) as rowCount
 		FROM IxUserWarehouse as a
-			LEFT JOIN IxPendingDeliver as b on a.xi=b.ixx
+			JOIN IxPendingDeliver as b on a.xi=b.ixx
 		WHERE a.ix=$user
-		GROUP BY b.ixx as warehouse; -- , b.ix as customer;
+		GROUP BY b.ixx as warehouse;
 };
 
 QUERY WarehouseDeliverMain (
@@ -105,10 +119,11 @@ RETURNS ret (
 ) {
 	INTO ret SELECT b.warehouse
 		, b.id as deliverMain, b.no
-		, b.customer, b.[$create] as create, c.rows, c.pickRows, c.staff
+		, b.customer, b.[$create] as create, d.rows, d.pickRows, d.staff
 		FROM IxUserWarehouse as a
 			JOIN DeliverMain as b ON a.xi=b.warehouse
-			LEFT JOIN DxDeliverMain as c ON b.id=c.id
+			JOIN DxDelivering as c on c.id=b.id
+			LEFT JOIN DxDeliverMain as d ON b.id=d.id
 		WHERE a.ix=$user;
 };
 
@@ -194,26 +209,27 @@ RETURNS main (
 )
 RETURNS detail (
 	id ID,	--# [DeliverDetail],
+	orderDetail ID,
 	delivermain ID,
 	item ID,
 	product ID,
 	deliverShould DEC(12,2),
 	pickDone DEC(12,2),
-	deliverDone DEC(12,2),
 	returnDone DEC(12,2)
 ) {
 	INTO main SELECT a.id, 
 		a.no, a.customer, a.contact, a.warehouse,
-		b.staff, b.rows, b.pickRows, b.deliverTime 
+		b.staff, b.rows, b.pickRows, b.deliverTime
 		FROM DeliverMain as a
 			LEFT JOIN DxDeliverMain as b ON a.id=b.id
 		WHERE a.id=deliver;
-	INTO detail SELECT a.id,
+	INTO detail SELECT a.id, b.xi as orderDetail,
 		a.main as delivermain,			-- DeliverMain id
-		b.item, b.product,
-		a.quantity as deliverShould, c.pickDone, c.deliverDone, c.returnDone 
+		c.item, c.product,
+		a.quantity as deliverShould, d.pickDone, d.returnDone 
 		FROM DeliverDetail as a 
-			JOIN OrderDetail as b ON a.id = b.id
-			LEFT JOIN DxDeliverDetail as c ON a.id = c.id
+			JOIN DeliverDetailOrderDetail as b on b.ix=a.id
+			JOIN OrderDetail as c ON c.id = b.xi
+			LEFT JOIN DxDeliverDetail as d ON a.id = c.id
 		WHERE a.main = deliver;
 };
