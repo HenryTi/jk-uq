@@ -1,0 +1,80 @@
+{
+    "pointExchangeSheet": [
+        "id: id",
+        "exchangeMainId: id",
+        "no: string",
+        "webUser: id",
+        "customer: id" ,
+        { "name": "exchangeItems", "type": "array",  "fields": "exchangeItem" },
+        "shippingContact: id",
+        "amount: number",
+        "currency: id",
+        "salesRegion: id"
+    ],
+    "exchangeItem": [
+        "exchangeDetailId: id",
+        "product: id",
+        "source: string",
+        "sourceId: number",
+        "quantity: number",
+        "point: number",
+        "subAmount: number"
+    ],
+    "point": [
+        "customer: id",
+        "point: number",
+        "pointType: number",
+        "pointSource: number",
+        "comments: string",
+        "createDate: string"
+    ],
+    "couponUsed": [
+        "orderId: string",
+        "webUser: id",
+        "customer: id",
+        "amount: number",
+        "currency: id",
+        "point: number",
+        "coupon: id"
+    ],
+    "customerPoint": [
+        "customer: id",
+        "pointYear: number",
+        "point: number",
+        "totalPoint: number",
+        "usedPoint: number"
+    ],
+    "creditsOrderMatched": [
+        "orderId: string",
+        "webUser: id",
+        "customer: id",
+        "amount: number",
+        "currency: id",
+        "point: number",
+        "coupon: id"
+    ],
+    "pointProductBus": [
+        "pack: id",
+        "description: string",
+        "descriptionC: string",
+        "grade: string",
+        "point: number",
+        "startDate: number",
+        "endDate: number",
+        "imageUrl: string",
+        "isValid: number"
+    ],
+    "pointProductBusOut": [
+        "pack: id",
+        "source: string",
+        "sourceId: string",
+        "description: string",
+        "descriptionC: string",
+        "grade: string",
+        "point: number",
+        "startDate: number",
+        "endDate: number",
+        "imageUrl: string",
+        "isValid: number"
+    ]
+}

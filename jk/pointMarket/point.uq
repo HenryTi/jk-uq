@@ -368,3 +368,21 @@ PENDING SOrderPaymentPending ver 0.1 (
     createDate datetime,
     date,
 );
+
+/*
+*/
+ACT PointChanged(customer id, point int, pointYear int, pointType int, 
+pointSource int, comments char(1000)) {
+    if(pointType = EnumPointType.total){
+        book PointBookByCustomer at (customer, pointYear) set totalPoint += point;
+    }
+    if(pointType = EnumPointType.point){
+        book PointBookByCustomer at (customer, pointYear) set point += point;
+    }
+    if(pointType = EnumPointType.used){
+        book PointBookByCustomer at (customer, pointYear) set usedPoint += point;
+    }
+    history PointHistoryByCustomer
+        set customer = customer, pointYear = pointYear, point = point, comments=comments
+        , pointType = pointType, source = pointSource;
+};

@@ -5,10 +5,6 @@ BUS ps2Bus from [百灵威系统工程部]/pointShop2;
  * 接收从内部系统导入的积分
 */
 BUS pointBus from [百灵威系统工程部]/pointShop
-    /*
-    * 在joint中发送bus，此处接收，用于将积分可兑换产品从老系统同步到tonva
-    * 2020/11/10, 此bus作废不再使用
-    */
     ACCEPT pointProductBus {
         var pointProductLibId int;
         set pointProductLibId = pointProduct from PointProductSource where sourceId = pack and type = 'self';
@@ -22,6 +18,23 @@ BUS pointBus from [百灵威系统工程部]/pointShop
                 grade = grade, point = point, startDate = from_unixtime(startDate), endDate = from_unixtime(endDate), imageUrl = imageUrl,
                 isValid = isValid; 
         }
+    }
+    ACCEPT point {
+        var pointYear int ;
+        set pointYear = year(from_unixtime(createDate));
+
+        if(pointType = EnumPointType.total){
+            book PointBookByCustomer at (customer, pointYear) set totalPoint += point;
+        }
+        if(pointType = EnumPointType.point){
+            book PointBookByCustomer at (customer, pointYear) set point += point;
+        }
+        if(pointType = EnumPointType.used){
+            book PointBookByCustomer at (customer, pointYear) set usedPoint += point;
+        }
+        history PointHistoryByCustomer
+            set customer = customer, pointYear = pointYear, point = point, comments=comments
+            , pointType = pointType, source = pointSource;
     };
 
 BUS webUserBus from [百灵威系统工程部]/WebUser
