@@ -40,7 +40,7 @@ RETURNS ret (
 ACTION OrderConfirm (
 	id ID OrderMain,
 ) {
-	BUS JkOrderBus.[deliver-ext] SET id=id;
+	-- BUS JkOrderBus.[deliver-ext] SET id=id;
 	BUS JkOrderBus.deliver SET id=id, contact=null;
 	FOR (VAR detailId ID, quantity DEC(12,2), amount DEC(12,2), warehouse ID 
 		OF SELECT a.id as detailId, a.quantity, a.quantity * a.price as amount, a.warehouse 
@@ -48,8 +48,8 @@ ACTION OrderConfirm (
 	{
 		WITH DxOrderDetail as a ID = detailId
 			SET a.deliver=quantity;					-- 请发
-		BUS JkOrderBus.[deliver-ext] INTO detail 
-			ADD id=detailId, needInsuredWhenDelivery=1;
+		-- BUS JkOrderBus.[deliver-ext] INTO detail 
+		--	ADD id=detailId, needInsuredWhenDelivery=1;
 		BUS JkOrderBus.deliver INTO detail 
 			ADD id=detailId, warehouse=warehouse;
 	}
@@ -81,7 +81,7 @@ RETURNS ret (
 			, sheetId=sheetId
     		, shippingContact=shippingContact;
 		BUS JkOrderBus.order SET id=mainId, no=orderNo, customerAccount=customer;
-		BUS JkOrderBus.[deliver-ext] SET id=mainId;
+		-- BUS JkOrderBus.[deliver-ext] SET id=mainId;
 		BUS JkOrderBus.deliver SET id=mainId, contact=shippingContact;
 		FOR detail {
 			VAR detailId ID;
@@ -98,8 +98,8 @@ RETURNS ret (
 					, quantity = quantity
 					, amount = amount
 					, price = price;
-			BUS JkOrderBus.[deliver-ext] INTO detail 
-				ADD id = detailId, needInsuredWhenDelivery = 0;
+			-- BUS JkOrderBus.[deliver-ext] INTO detail 
+			--	ADD id = detailId, needInsuredWhenDelivery = 0;
 			BUS JkOrderBus.deliver INTO detail 
 				ADD id = detailId, warehouse = warehouse;
 		}

@@ -108,8 +108,14 @@ ACT DoneInvoice ver 0.2 (
 		amount DEC(12,2),
 	)
 ) {
-	BUS JkOrderBus.[invoice-done] SET id=null;
+	VAR invoiceMainId ID;
+	SET invoiceMainId=ID(InvoiceMain new);
+	BUS JkOrderBus.[invoice-done] SET id=invoiceMainId;
 	FOR detail {
+		VAR invoiceDetailId ID;
+		SET invoiceDetailId=ID(InvoiceDetail new);
+		WITH InvoiceDetail as a ID=invoiceDetailId 
+			SET a.main=invoiceMainId, a.orderDetail=orderDetail, a.amount=amount;
 		IF amount IS NULL CONTINUE;
 		IF amount>0 {
 			WITH DxOrderDetail as a ID=orderDetail SET a.invoiceDone=amount;
@@ -120,6 +126,6 @@ ACT DoneInvoice ver 0.2 (
 		WITH IxCustomerPendingInvoice IX=customer XI=orderDetail DEL;
         WITH DxCustomerInvoice ID=customer SET sumAmount -= amount;
 		BUS JkOrderBus.[invoice-done] INTO detail 
-			ADD id=orderDetail, value=amount;
+			ADD id=invoiceDetailId, orderDetail=orderDetail, value=amount;
 	}
 };
