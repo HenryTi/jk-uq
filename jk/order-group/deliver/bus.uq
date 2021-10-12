@@ -10,33 +10,6 @@ ACCEPT order {
 				, a.quantity=quantity, a.amount=amount, a.price=price; --a.lotnumber=lotnumber;
 	}
 }
-/*
- 1. bus deliver的detail里面有 orderDetail + quantity;
- 2. 此处接收deliver后， orderDetail和quantity都写入IxPendingDeliver（IxPendingDeliver中要添加quantity);
- 3. OrderDetail中有一个warehouse是什么意思？好像OrderMain/OrderDetail应该只作为order中对应表的本地备份；
- 4. DxOrderDetail不明白是干什么；
- 1.2.3.4已经解决
- 5. AutoWarehouseDeliver 考虑改成手动“截单”，截单后生成“发运单”和“拣货单”、“理货单”
-*/
-BUS JkDeliverBus from 百灵威系统工程部/[jk-deliver]
-ACCEPT deliver {
-    VAR requestID = ID(Request new);
-    WITH Request as a ID = requestID set a.customerAccount = customerAccount, a.contact = contact;
-    FOR detail {
-        -- todo:接收bus时候保存cutOffType（截单类型）,
-        VAR requestDetailID = ID(RequestDetail new); 
-        WITH RequestDetail as a ID requestDetailID set a.main = requestID, a.biz = biz, a.item = item
-            , a.warehouse = warehouse, a.quantity = quantity, a.lotNumber = lotNumber, a.showPrice = showPrice
-            , a.json = json;
-        WITH IxPendingRequest ID requestDetailID; 
-
-        FOR (VAR user ID OF SELECT ix as user FROM IxUserWarehouse WHERE xi=warehouse) {
-            TUID [$User] ID (user) SET poke=1;
-        }
-    }
-
-    -- 备注：下一步是“截单”，即ACT CutOff
-}
 ACCEPT [pickup-done] {
 	VAR main INT;
 	SET main = a.main FROM DeliverDetail as a WHERE a.id = deliverDetail;
@@ -58,11 +31,41 @@ ACCEPT [return] {
         -- TODO: 这儿的id不对
 		WITH DxDeliverDetail ID=id SET deliverReturn=retQuantity;
 		-- 做return相关操作
+        /*
 		IF exists(SELECT xi FROM IxPendingDeliver WHERE ixx=warehouse AND ix=customerAccount AND xi=[orderdetail]) {
 			IF deliverReturn - retQuantity <= 0 {
 				WITH IxPendingDeliver IXX=warehouse IX=customerAccount XI=[orderdetail] 
 					DEL WHERE deliverReturn - retQuantity <= 0;
 			}
 		}
+        */
 	}
+};
+
+/*
+ 1. bus deliver的detail里面有 orderDetail + quantity;
+ 2. 此处接收deliver后， orderDetail和quantity都写入IxPendingDeliver（IxPendingDeliver中要添加quantity);
+ 3. OrderDetail中有一个warehouse是什么意思？好像OrderMain/OrderDetail应该只作为order中对应表的本地备份；
+ 4. DxOrderDetail不明白是干什么；
+ 1.2.3.4已经解决
+ 5. AutoWarehouseDeliver 考虑改成手动“截单”，截单后生成“发运单”和“拣货单”、“理货单”
+*/
+BUS JkDeliverBus from 百灵威系统工程部/[jk-deliver]
+ACCEPT deliver {
+    VAR requestID ID = ID(Request new);
+    WITH Request as a ID = requestID set a.customerAccount = customerAccount, a.contact = contact;
+    FOR detail {
+        -- todo:接收bus时候保存cutOffType（截单类型）,
+        VAR requestDetailID ID = ID(RequestDetail new); 
+        WITH RequestDetail as a ID requestDetailID set a.main = requestID, a.biz = biz, a.item = item
+            , a.warehouse = warehouse, a.quantity = quantity, a.lotNumber = lotNumber, a.showPrice = showPrice
+            , a.json = json;
+        WITH IxPendingRequest ID requestDetailID; 
+
+        FOR (VAR user ID OF SELECT ix as user FROM IxUserWarehouse WHERE xi=warehouse) {
+            TUID [$User] ID (user) SET poke=1;
+        }
+    }
+
+    -- 备注：下一步是“截单”，即ACT CutOff
 };
