@@ -1,0 +1,29 @@
+{
+    "$": "百灵威系统工程部/jk-deliver",
+    "deliver-detail": [
+        "biz: id",
+        "item: id",
+        "quantity: number  -- 同一个合同明细可能会分多次不同数量发送",
+        "warehouse: id",
+        "lotNumber: string",
+        "showPrice: number                  -- 单据上是否显示价格, 需要则1",
+        "json: string                       -- 只需要在界面展示的信息以json格式存储"
+    ],
+    "deliver": [
+        "-- 通用些的发运字段，一般不会变化",
+        "customerAccount: id    -- deliver用来区分截单类型，实际上Deliver不应该据此区分截单类型，日后应该去除",
+        "contact: id -- 发货地址id。",
+        "detail: deliver-detail"
+    ],
+    "pickup-detail":[
+        "biz: id    -- 发运单明细",
+        "item: id",
+        "quantity: number",
+        "lotNumber: string"
+    ],
+    "pickup": [
+        "warehouse: id",
+        "cutOffMain: id   -- 截单号",
+        "detail: pickup-detail"
+    ]
+}
