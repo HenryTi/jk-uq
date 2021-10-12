@@ -35,20 +35,19 @@ QUERY GetReadyCutOffList(
 )
 RETURNS list (
     orderDetail ID,
-	product ID,
 	item ID,
 	shouldQuantity DEC(12,2),
     customerAccount ID
 ) {
-    INTO list SELECT a.xi as orderDetail,
-        b.product, b.item, b.quantity as shouldQuantity,
-        a.ix as customerAccount
-    FROM IxPendingDeliver as a
-        JOIN OrderDetail as b ON a.xi = b.id
-        JOIN IxUserWarehouse as c on c.ix = $user AND c.xi = a.ixx
-        JOIN OrderMain as d ON b.main = d.id
-    WHERE a.ixx = warehouse and a.ix = cutOffType
-    ORDER BY a.ixx, a.ix, d.contact, a.xi;
+    INTO list SELECT b.biz as orderDetail,
+        b.item, b.quantity as shouldQuantity,
+        d.customerAccount
+    FROM IxPendingRequest as a
+        JOIN RequestDetail as b ON a.xi = b.id
+        JOIN Request as d ON b.main = d.id
+        JOIN IxUserWarehouse as c on c.ix = $user AND c.xi = b.warehouse
+    WHERE b.warehouse = warehouse and b.cutOffType = cutOffType
+    ORDER BY b.warehouse, b.cutOffType, d.contact, b.biz;
 };
 
 /* 
@@ -105,12 +104,14 @@ RETURNS main (
     IF NOT exists(SELECT ix FROM IxUserWarehouse WHERE ix=$user AND xi = aWarehouse) {
         RETURN;
     }
+
     -- 2、定义变量生成截单号
     VAR cutOffMain ID, cutOffMainNo CHAR(20);	
 	SET cutOffMainNo = NO(CutOffMain);
 	SET cutOffMain = ID(CutOffMain new, cutOffMainNo);
 	WITH CutOffMain as a ID = cutOffMain SET a.no = cutOffMainNo, a.warehouse = aWarehouse, a.cutter = $user;
-	BUS JkOrderBus.pickup SET cutOffMain=cutOffMain, warehouse=aWarehouse;
+
+	BUS JkDeliverBus.pickup SET cutOffMain = cutOffMain, warehouse = aWarehouse;
 
     -- 3、生成发运单、临时理货号, 并删除已截单的数据
     LOG 'CutOff' SUBJECT 'start';
@@ -119,23 +120,25 @@ RETURNS main (
 
 	WHILE 1 = 1 {
         -- 循环获取 limit1数据
-		VAR warehouse ID, customerAccount ID, contact ID, orderDetail ID, quantity dec(18, 4), showPrice tinyint, json text, lotNumber char(50);
+		VAR requestDetail ID, warehouse ID, customerAccount ID, contact ID, biz ID, item ID, quantity dec(18, 4)
+            , showPrice tinyint, json text, lotNumber char(50);
 		SET warehouse = NULL;
-		SET warehouse = a.ixx, customerAccount = c.customerAccount, contact = c.contact, orderDetail = a.xi, quantity = a.quantity
-			, showPrice = a.showPrice, json = a.json, lotNumber = b.lotnumber
-        FROM IxPendingDeliver as a
-            JOIN OrderDetail as b ON b.id = a.xi
-            JOIN OrderMain as c ON c.id = b.main
-        WHERE a.ixx = aWarehouse and a.ix = cutOffType
-        ORDER BY a.ixx, a.ix, c.contact, a.xi
+
+		SET requestDetail = a.id, warehouse = b.warehouse, customerAccount = c.customerAccount, contact = c.contact
+            , biz = a.biz, item = a.item, quantity = a.quantity, lotNumber = b.lotnumber
+			, showPrice = a.showPrice, json = a.json
+        FROM IxPendingRequest as a
+            JOIN RequestDetail as b ON b.id = a.id
+            JOIN Request as c ON c.id = b.main
+        WHERE b.warehouse = aWarehouse and b.cutOffType = cutOffType
+        ORDER BY b.warehouse, b.cutOffType, c.contact, a.biz
         LIMIT 1;
 
 		IF warehouse IS NULL {
 			BREAK;
 		}
         -- 从任务表中删除已获取到的当前数据
-		DELETE a FROM IxPendingDeliver as a
-        WHERE a.ixx=warehouse AND a.ix=cutOffType AND a.xi=orderDetail;
+		DELETE a FROM IxPendingDeliver as a WHERE a.id = requestDetail;
 
         -- 从临时表中查询是否存在，不存在则生成新发运单和临时理货号
 		VAR deliverMainId ID;
@@ -153,17 +156,18 @@ RETURNS main (
 			SET trayNumber = trayNumber + 1;
 		}
 		VAR deliverDetailId ID = ID(DeliverDetail new);
-		WITH DeliverDetail as a ID = deliverDetailId SET a.main = deliverMainId, a.quantity = quantity;
-		WITH DeliverDetailOrderDetail ix = deliverDetailId xi = orderDetail;
+		WITH DeliverDetail as a ID = deliverDetailId SET a.main = deliverMainId, a.biz = biz
+            , a.item = item, a.quantity = quantity, a.lotNumber = lotNumber;
+		-- WITH DeliverDetailOrderDetail ix = deliverDetailId xi = orderDetail;
+        
 		WITH DxDeliverDetail as a ID = deliverDetailId SET a.showPrice = showPrice, a.json = json;
 		WITH DxDelivering as a ID = deliverMainId;
 		WITH DxDeliverMain as a ID = deliverMainId SET a.rows = a.rows + 1;
 		
-		BUS JkOrderBus.pickup INTO detail
-			ADD id = deliverDetailId, orderDetail = orderDetail, quantity = quantity, lotNumber = lotNumber;
+		BUS JkDeliverBus.pickup INTO detail
+			ADD biz = deliverDetailId, item = item, quantity = quantity, lotNumber = lotNumber;
 	}
 	LOG 'CutOff' SUBJECT 'end';
-	-- WITH CutOffProcessing id = cutOffMain;  -- ixx = aWarehouse xi = cutOffMain ix = cutOffType
 	WITH Talling as a id = cutOffMain;
     INTO main SELECT cutOffMain as id, cutOffMainNo as no;
 };
@@ -183,18 +187,15 @@ RETURNS detail (
 	deliverMain ID,
 	trayNumber int,
 	contact ID,
-	customer ID,
+	customerAccount ID,
 	carrier ID,
     waybillNumber char(50),
 	deliverTime TIMESTAMP DEFAULT NULL,
 	deliverDetail ID,
 	item ID,
-	product ID,
 	tallyShould DEC(12,2),
 	tallyDone DEC(12,2),
 	tallyState TINYINT,
-	price DEC(12,2),
-	orderMainNo char(20),
 	lotNumber char(50),
 	showPrice int,
 	content text
@@ -203,19 +204,19 @@ RETURNS detail (
 		FROM CutOffMain as a
 			LEFT JOIN DxCutOffMain as b ON a.id=b.id
 		WHERE a.id=cutOffMain;
+
 	INTO detail SELECT b.id as delivermain, b.trayNumber,
-		b.contact, b.customer, g.carrier, g.waybillNumber, g.deliverTime,
-		c.id as deliverDetail, e.item, e.product, c.quantity as tallyShould, 
-		f.tallyDone, f.tallyState, e.price, h.no as orderMainNo, e.lotNumber, f.showPrice, f.json as content
+		b.contact, b.customerAccount, g.carrier, g.waybillNumber, g.deliverTime,
+		c.id as deliverDetail, c.item, c.quantity as tallyShould, 
+		f.tallyDone, f.tallyState, c.lotNumber, f.showPrice, f.json as content
 		FROM CutOffMain as a
 			JOIN DeliverMain as b on a.id=b.cutOffMain
 			JOIN DeliverDetail as c on b.id=c.main
 			JOIN DeliverDetailOrderDetail as d on d.ix=c.id
-			JOIN OrderDetail as e ON e.id=d.xi
 			LEFT JOIN DxDeliverDetail as f ON f.id=c.id
 			LEFT JOIN DxDeliverMain as g on g.id=b.id
-			LEFT JOIN OrderMain as h on h.id=e.main
-		WHERE a.id=cutOffMain;
+			JOIN OrderDetail as e ON e.id=d.xi
+		WHERE a.id = cutOffMain;
 };
 
 /* 开始理货 */

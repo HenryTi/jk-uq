@@ -18,16 +18,24 @@ ACCEPT order {
  1.2.3.4已经解决
  5. AutoWarehouseDeliver 考虑改成手动“截单”，截单后生成“发运单”和“拣货单”、“理货单”
 */
+BUS JkDeliverBus from 百灵威系统工程部/[jk-deliver]
 ACCEPT deliver {
-	WITH OrderMain as a ID=id SET a.contact = contact;
-	FOR detail {
-		-- todo:接收bus时候保存cutOffType（截单类型）,
-		WITH IxPendingDeliver ixx = warehouse ix = 1 xi = id SET quantity = quantity, showPrice = showPrice, json = json;
+    VAR requestID = ID(Request new);
+    WITH Request as a ID = requestID set a.customerAccount = customerAccount, a.contact = contact;
+    FOR detail {
+        -- todo:接收bus时候保存cutOffType（截单类型）,
+        VAR requestDetailID = ID(RequestDetail new); 
+        WITH RequestDetail as a ID requestDetailID set a.main = requestID, a.biz = biz, a.item = item
+            , a.warehouse = warehouse, a.quantity = quantity, a.lotNumber = lotNumber, a.showPrice = showPrice
+            , a.json = json;
+        WITH IxPendingRequest ID requestDetailID; 
 
-		FOR (VAR user ID OF SELECT ix as user FROM IxUserWarehouse WHERE xi=warehouse) {
-			TUID [$User] ID (user) SET poke=1;
-		}
-	}
+        FOR (VAR user ID OF SELECT ix as user FROM IxUserWarehouse WHERE xi=warehouse) {
+            TUID [$User] ID (user) SET poke=1;
+        }
+    }
+
+    -- 备注：下一步是“截单”，即ACT CutOff
 }
 ACCEPT [pickup-done] {
 	VAR main INT;

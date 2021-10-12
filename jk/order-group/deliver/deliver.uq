@@ -31,7 +31,12 @@ IDX DxDeliverMain (
 ID DeliverDetail GLOBAL(
     id,                     -- 
     main ID DeliverMain,    -- DeliverMain id	
+    biz ID,
+    item ID,
     quantity dec(18, 4),
+    lotNumber char(50),
+    showPrice tinyint,
+    json text
 );
 
 IDX DxDeliverDetail (
@@ -55,16 +60,6 @@ IDX DxDelivering (
 IX IxUserWarehouse (
 	ix User,
 	xi Warehouse,
-);
-
-IX IxPendingDeliver (
-    ixx Warehouse,
-    ix cutOffType,
-    xi OrderDetail,
-    quantity dec(18, 4),
-    -- 其实要加上此次发货的特殊要求，即deliver-ext的内容
-	showPrice tinyint,
-	json text
 );
 
 ACT Delivering (
@@ -147,50 +142,6 @@ RETURNS ret (
 			JOIN OrderDetail as b on a.xi=b.id
 			-- JOIN IxUserWarehouse as d on d.ix=$user AND d.xi=a.ixx
 		WHERE a.ixx=warehouse AND a.ix=customer;
-};
-
-/*
- 1. DeliverDetail设置单独主键（不再把orderDetail作为其主键），增加orderDetail + quantity;
- 2. AutoWarehouseDeliver可能不定时运行，改成手动运行，表示是一次截单；
- 3. 截单后，形成：
-    3.1 发货单（运单、收货回执），按照客户 + 收货地址区分，明细是：orderDetail + quantity;
-    3.2 拣货单，明细是 orderDetail + quantity + 货位；
-    3.3 理货单，明细是：orderDetail + quantity + 托盘号；
-*/
-ACT AutoWarehouseDeliver()
-{
-	-- 生成发运单
-	LOG 'AutoWarehouseDeliver' SUBJECT 'start';
-	TABLE tblWarehouseDeliver(key warehouse ID, key customer ID, deliver ID);
-	WHILE 1=1 {
-		VAR warehouse ID, customer ID, orderDetail ID;
-		SET warehouse=NULL;
-		SET warehouse=a.ixx, customer=a.ix, orderDetail=a.xi
-			FROM IxPendingDeliver as a
-			ORDER BY a.ixx, a.ix, a.xi
-			LIMIT 1;
-		IF warehouse IS NULL {
-			BREAK;
-		}
-		DELETE a FROM IxPendingDeliver as a 
-			WHERE a.ixx=warehouse AND a.ix=customer AND a.xi=orderDetail;
-
-		VAR deliver ID, deliverNo CHAR(20);
-		SET deliver=NULL;
-		SET deliver=a.deliver FROM tblWarehouseDeliver as a 
-			WHERE a.warehouse=warehouse AND a.customer=customer;
-		IF deliver IS NULL {
-			SET deliverNo=NO(DeliverMain);
-			SET deliver=ID(DeliverMain new, deliverNo);
-			WITH DeliverMain as a ID=deliver SET a.customer=customer, a.warehouse=warehouse;
-			INTO tblWarehouseDeliver SELECT warehouse, customer, deliver;
-			-- 对于有增1的字段，必须用下一句，保证这一行在表中存在
-			WITH DxDeliverMain as a ID=deliver;
-		}
-		WITH DeliverDetail ID=orderDetail SET main=deliver;
-		WITH DxDeliverMain as a ID=deliver SET a.rows=a.rows+1;
-	}
-	LOG 'AutoWarehouseDeliver' SUBJECT 'end';
 };
 
 QUERY GetDeliver (
