@@ -1,7 +1,7 @@
 ID DeliverMain GLOBAL(
     id,
     KEY no,
-    customer ID,
+    customerAccount ID,
     contact ID,
     warehouse ID,
     sys(create),
