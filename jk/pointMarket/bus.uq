@@ -320,3 +320,21 @@ BUS JkOrderBus from 百灵威系统工程部/[jk-order]
             }
         }
     };
+
+BUS JkDeliverBus ver 0.2 from 百灵威系统工程部/[jk-deliver]
+ACCEPT [deliver-done] {
+    FOR detail {
+        VAR exchangeDetailId ID, exchangeMainId;
+        SET exchangeDetailId = null, exchangeMainId = null;
+
+        SET exchangeDetailId = a.id, exchangeMainId = a.main from pointExchangeDetail as a where a.id = biz;
+        if(not exchangeDetailId is null){
+            WITH DxExchangeDetail ID = exchangeDetailId SET deliverDone += value, deliverTime = $date;
+
+            if not exists(select 1 from DxExchangeDetail as a 
+            join ExchangeDetail as b on a.id = b.id where b.main = exchangeMainId and a.deliver <= a.deliverDone) {
+                WITH DxExchangeMainState ID = exchangeMainId set state = EnumExchangeState.delivered;
+            }
+        }
+    }
+};

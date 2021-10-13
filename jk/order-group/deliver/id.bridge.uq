@@ -42,11 +42,11 @@ ACCEPT deliveryConfirm {
     WITH DxDeliverDetail ID = deliverDetailId set deliverDone = quantity;
     if(ifnull(source, '') = 'orderDetail'){
         WITH DeliverDetailOrderDetail ix = deliverDetailId xi = orderDetailId; 
-
-        BUS JkOrderBus.[deliver-done] set id = deliverId;
-        BUS JkOrderBus.[deliver-done] into detail ADD id = deliverDetailId, orderdetail = orderDetailId, value = quantity; 
     }
     if(ifnull(source, '') = 'pointExchangeDetail'){
         WITH DeliverDetailExchangeDetail ix = deliverDetailId xi = orderDetailId; 
     }
+
+    BUS JkDeliverBus.[deliver-done] set id = deliverId;
+    BUS JkDeliverBus.[deliver-done] into detail ADD id = deliverDetailId, biz = orderDetailId, value = quantity; 
 };
