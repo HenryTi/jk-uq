@@ -10,12 +10,6 @@ ACCEPT order {
 				, a.quantity=quantity, a.amount=amount, a.price=price; --a.lotnumber=lotnumber;
 	}
 }
-ACCEPT [pickup-done] {
-	VAR main INT;
-	SET main = a.main FROM DeliverDetail as a WHERE a.id = deliverDetail;
-	WITH DxDeliverDetail as a ID = deliverDetail SET a.pickDone = quantity;
-	WITH DxDeliverMain as a ID = main SET a.pickRows = a.pickRows + 1;
-}
 ACCEPT [return] {
 	VAR customerAccount ID;
 	SET customerAccount = a.customerAccount FROM OrderMain as a WHERE a.id=id;
@@ -68,4 +62,16 @@ ACCEPT deliver {
     }
 
     -- 备注：下一步是“截单”，即ACT CutOff
+}
+ACCEPT [pickup-done] {
+    FOR detail {
+        VAR main INT;
+        set main = null;
+        
+        SET main = a.main FROM DeliverDetail as a WHERE a.id = biz;
+        if(not main is null){
+            WITH DxDeliverDetail as a ID = biz SET a.pickDone += value;
+            WITH DxDeliverMain as a ID = main SET a.pickRows = a.pickRows + 1;
+        }
+    }
 };

@@ -165,7 +165,7 @@ RETURNS main (
 		WITH DxDeliverMain as a ID = deliverMainId SET a.rows = a.rows + 1;
 		
 		BUS JkDeliverBus.pickup INTO detail
-			ADD biz = deliverDetailId, item = item, quantity = quantity, lotNumber = lotNumber;
+			ADD biz = deliverDetailId, item = item, quantity = quantity, lotNumber = lotNumber, json = json;
 	}
 	LOG 'CutOff' SUBJECT 'end';
 	WITH Talling as a id = cutOffMain;
