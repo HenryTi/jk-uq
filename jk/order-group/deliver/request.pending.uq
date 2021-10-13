@@ -1,0 +1,23 @@
+IDX IxPendingRequest (
+    id,
+);
+
+ID Request (
+    id,
+    customerAccount ID,
+    contact ID,
+    sys(create)
+);
+
+ID RequestDetail (
+    id,
+    main ID Request,
+    biz ID,
+    cutOffType ID,
+    warehouse ID,
+    item ID,
+    quantity dec(18, 4),
+    lotNumber char(50),
+    showPrice tinyint,
+    json text
+);
