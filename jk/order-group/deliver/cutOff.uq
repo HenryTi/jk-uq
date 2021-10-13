@@ -167,8 +167,10 @@ RETURNS main (
 		WITH DxDelivering as a ID = deliverMainId;
 		WITH DxDeliverMain as a ID = deliverMainId SET a.rows = a.rows + 1;
 		
+		-- biz是发运上游（订单明细/exchangeDetail）的id，
+		-- biz2是（订单明细/exchangeDetail）的id，因为目前出库在老系统中而截单在新系统，需要暂时存储到biz2中；此字段日后要去掉；
 		BUS JkDeliverBus.pickup INTO detail
-			ADD biz = deliverDetailId, item = item, quantity = quantity, lotNumber = lotNumber, json = json;
+			ADD biz = deliverDetailId, biz2 = biz, item = item, quantity = quantity, lotNumber = lotNumber, json = json;
             
         -- 从任务表中删除已获取到的当前数据
 		DELETE a FROM IxPendingRequest as a WHERE a.id = requestDetail;

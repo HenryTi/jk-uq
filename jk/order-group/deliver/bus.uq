@@ -51,6 +51,7 @@ ACCEPT deliver {
     FOR detail {
         -- todo:接收bus时候保存cutOffType（截单类型）,
         VAR requestDetailID ID = ID(RequestDetail new); 
+		-- biz是发运的上游（订单明细/exchangeDetail）的id
         WITH RequestDetail as a ID requestDetailID set a.main = requestID, a.biz = biz, a.item = item
             , a.warehouse = warehouse, a.quantity = quantity, a.lotNumber = lotNumber, a.showPrice = showPrice
             , a.json = json;
