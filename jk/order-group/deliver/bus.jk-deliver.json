@@ -1,0 +1,45 @@
+{
+    "$": "百灵威系统工程部/jk-deliver",
+    "note": [
+        "id: id",
+        "detail: note-detail"
+    ],
+    "note-detail": [
+        "id: id",
+        "biz: id",
+        "value: number"
+    ],
+    "deliver-detail": [
+        "biz: id",
+        "item: id",
+        "quantity: number  -- 同一个合同明细可能会分多次不同数量发送",
+        "warehouse: id",
+        "lotNumber: string",
+        "showPrice: number                  -- 单据上是否显示价格, 需要则1",
+        "json: string                       -- 只需要在界面展示的信息以json格式存储"
+    ],
+    "deliver": [
+        "-- 通用些的发运字段，一般不会变化",
+        "customerAccount: id    -- deliver用来区分截单类型，实际上Deliver不应该据此区分截单类型，日后应该去除",
+        "contact: id -- 发货地址id。",
+        "detail: deliver-detail"
+    ],
+    "deliver-done": [
+        "note"
+    ],
+    "pickup-detail":[
+        "biz: id    -- 发运单明细",
+        "item: id",
+        "quantity: number",
+        "lotNumber: string",
+        "json: string"
+    ],
+    "pickup": [
+        "warehouse: id",
+        "cutOffMain: id   -- 截单号, 实际上这个截单号没有用，现在是以其为单位打印拣货单，实际上拣货单有自己的生成逻辑，不再用截单号为单位",
+        "detail: pickup-detail"
+    ],
+    "pickup-done": [
+        "note"
+    ]
+}
