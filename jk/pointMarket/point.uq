@@ -211,6 +211,11 @@ Action submit {
         return;
     }
 
+    var mainId ID;
+    set mainId = ID(ExchangeMain new, $sheet_no);
+    WITH ExchangeMain as a ID mainId set a.no = $sheet_no, a.customer = customer, a.shippingContact = shippingContact
+        , a.amount = amount, a.sheetId = $id, a.createDate = now();
+
     var leftAmount bigint;
     set leftAmount = amount;
 
@@ -235,7 +240,10 @@ Action submit {
                 history PointHistoryByCustomer
                     set customer = customer, pointYear = pointYear, point = p, comments=$sheet_no
                     , pointType = EnumPointType.used, source = EnumPointChangingSource.exchange;
-            }
+                
+                -- 兑换单使用积分明细，针对年度
+                WITH IxExchangeMainUsedPoint ix = mainId xi = pointYear set point = p;
+            } 
 
             set leftAmount = leftAmount - p;
             if(leftAmount <= 0){
@@ -243,11 +251,6 @@ Action submit {
             }
         }
     }
-
-    var mainId ID;
-    set mainId = ID(ExchangeMain new, $sheet_no);
-    WITH ExchangeMain as a ID mainId set a.no = $sheet_no, a.customer = customer, a.shippingContact = shippingContact
-        , a.amount = amount, a.sheetId = $id, a.createDate = now();
 
     bus pointBus.pointExchangeSheet set id = $id, no = $sheet_no, ExchangeMainId = mainId, customer = customer,
         shippingContact = shippingContact, amount = amount;
@@ -262,6 +265,7 @@ Action submit {
         bus pointBus.pointExchangeSheet into exchangeItems add exchangeDetailId = detailId, product = product
             , source = source, sourceId = sourceId, quantity = quantity, point = point, subAmount = subAmount;
     }
+    WITH DxExchangeMainState as a ID = mainId set a.state = EnumExchangeState.delivering, a.createDate = now();
     STATE TO Shipping;
 }
 -- 前台界面需修改：未审核的新webuser不能兑换产品，需要新进行审核，界面上要有提示
@@ -278,11 +282,14 @@ STATE Shipping {
                 set customer = customer, pointYear = pointYear, point = point * -1, comments=$sheet_no
                 , pointType = EnumPointType.used, source = EnumPointChangingSource.exchange;            
         } 
+
+        VAR mainId ID;
+        set mainId = a.id from ExchangeMain as a where a.sheetId = $id;
+        WITH DxExchangeMainState as a ID = mainId set a.state = EnumExchangeState.canceled, a.createDate = now();
         STATE TO CANCELED;
     }
 }
 STATE CANCELED {
-
 };
 
 /*
@@ -361,3 +368,21 @@ PENDING SOrderPaymentPending ver 0.1 (
     createDate datetime,
     date,
 );
+
+/*
+*/
+ACT PointChanged(customer id, point int, pointYear int, pointType int, 
+pointSource int, comments char(1000)) {
+    if(pointType = EnumPointType.total){
+        book PointBookByCustomer at (customer, pointYear) set totalPoint += point;
+    }
+    if(pointType = EnumPointType.point){
+        book PointBookByCustomer at (customer, pointYear) set point += point;
+    }
+    if(pointType = EnumPointType.used){
+        book PointBookByCustomer at (customer, pointYear) set usedPoint += point;
+    }
+    history PointHistoryByCustomer
+        set customer = customer, pointYear = pointYear, point = point, comments=comments
+        , pointType = pointType, source = pointSource;
+};

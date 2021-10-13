@@ -52,7 +52,7 @@ BUS ps2Bus from [百灵威系统工程部]/PointShop2
         if exists(select 1 from coupon where id = credits and types = 'credits') {
             set multiple = 2;
         } else {
-            set multiple = 1;
+            set multiple = 0;
         }
         into bus select multiple;
     };

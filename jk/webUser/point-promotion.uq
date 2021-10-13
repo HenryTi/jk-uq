@@ -1,0 +1,8 @@
+TUID PromotionPointMobile (
+    id,
+    mobile char(20),
+    point int,
+    comments char(100),
+    expiredDate date,
+    unique(mobile),
+);
