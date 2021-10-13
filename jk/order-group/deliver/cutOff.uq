@@ -106,6 +106,11 @@ RETURNS main (
     }
 
     -- 2、定义变量生成截单号
+    if not exists (select 1 from IxPendingRequest as a join RequestDetail as b on a.id = b.id
+    where b.warehouse = aWarehouse and b.cutOffType = cutOffType) {
+        RETURN; 
+    }
+
     VAR cutOffMain ID, cutOffMainNo CHAR(20);	
 	SET cutOffMainNo = NO(CutOffMain);
 	SET cutOffMain = ID(CutOffMain new, cutOffMainNo);
@@ -137,8 +142,6 @@ RETURNS main (
 		IF warehouse IS NULL {
 			BREAK;
 		}
-        -- 从任务表中删除已获取到的当前数据
-		DELETE a FROM IxPendingRequest as a WHERE a.id = requestDetail;
 
         -- 从临时表中查询是否存在，不存在则生成新发运单和临时理货号
 		VAR deliverMainId ID;
@@ -166,6 +169,9 @@ RETURNS main (
 		
 		BUS JkDeliverBus.pickup INTO detail
 			ADD biz = deliverDetailId, item = item, quantity = quantity, lotNumber = lotNumber, json = json;
+            
+        -- 从任务表中删除已获取到的当前数据
+		DELETE a FROM IxPendingRequest as a WHERE a.id = requestDetail;
 	}
 	LOG 'CutOff' SUBJECT 'end';
 	WITH Talling as a id = cutOffMain;

@@ -21,7 +21,7 @@ BUS JkDeliverBus ver 0.9 from 百灵威系统工程部/[jk-deliver]
     ACCEPT pickup {
         FOR detail {
             WITH IxPendingOutBound ixx = warehouse ix = cutOffMain xi = biz 
-            set item = item, quantity = quantity, lotNumber = lotNumber, json = json;
+            set biz2 = biz2, item = item, quantity = quantity, lotNumber = lotNumber, json = json;
         }
         -- SCHEDULE AutoOutBound DELAY 2; -- 2分钟以后执行一次
     };
@@ -46,13 +46,12 @@ BUS warehouseBus from [百灵威系统工程部]/warehouse
             SET cutOffMain = NULL;
             SET cutOffMain = a.ix, deliverDetail = a.xi, warehouse = a.ixx
                 FROM IxPendingOutBound as a
-                WHERE a.item = pack AND a.quantity >= quantity
+                WHERE a.biz2 = biz2 AND a.quantity >= quantity
                 LIMIT 1;
     
             IF(NOT cutOffMain IS NULL) {
-                -- 直接写入pickupDetail可以吗？
                 WITH IxPendingPickup ixx = warehouse ix = cutOffMain xi = deliverDetail
-                set item = pack, shelfBlock = shelfBlock, quantity = quantity, lotNumber = lotNumber;
+                set item = pack, shelfBlock = shelfBlock, quantity = quantity, lotNumber = lotNumber, json = json;
                 -- 是否在此删除 IxPendingOutBound 待出库数据？
                 SCHEDULE AutoPick(warehouse,cutOffMain) DELAY 2; -- 2分钟以后执行一次
             }

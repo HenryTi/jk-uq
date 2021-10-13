@@ -39,6 +39,7 @@ IX IxPendingOutBound (
     ixx, -- Warehouse,
     ix, -- cutOffMain
     xi, -- deliver detail id,
+    biz2 ID,    -- 相关说明见pickup bus定义
     item ID,
     quantity dec(18, 4),
     lotNumber char(50),
