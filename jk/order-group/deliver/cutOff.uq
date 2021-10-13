@@ -160,10 +160,10 @@ RETURNS main (
 		}
 		VAR deliverDetailId ID = ID(DeliverDetail new);
 		WITH DeliverDetail as a ID = deliverDetailId SET a.main = deliverMainId, a.biz = biz
-            , a.item = item, a.quantity = quantity, a.lotNumber = lotNumber;
+            , a.item = item, a.quantity = quantity, a.lotNumber = lotNumber, a.showPrice = showPrice, a.json = json;
 		-- WITH DeliverDetailOrderDetail ix = deliverDetailId xi = orderDetail;
         
-		WITH DxDeliverDetail as a ID = deliverDetailId SET a.showPrice = showPrice, a.json = json;
+		WITH DxDeliverDetail as a ID = deliverDetailId;
 		WITH DxDelivering as a ID = deliverMainId;
 		WITH DxDeliverMain as a ID = deliverMainId SET a.rows = a.rows + 1;
 		
@@ -212,16 +212,14 @@ RETURNS detail (
 		WHERE a.id=cutOffMain;
 
 	INTO detail SELECT b.id as delivermain, b.trayNumber,
-		b.contact, b.customerAccount, g.carrier, g.waybillNumber, g.deliverTime,
-		c.id as deliverDetail, c.item, c.quantity as tallyShould, 
-		f.tallyDone, f.tallyState, c.lotNumber, f.showPrice, f.json as content
+		b.contact, b.customerAccount, e.carrier, e.waybillNumber, e.deliverTime,
+		c.id as deliverDetail, c.item, c.quantity as tallyShould,
+		d.tallyDone, d.tallyState, c.lotNumber, c.showPrice, c.json as content
 		FROM CutOffMain as a
 			JOIN DeliverMain as b on a.id=b.cutOffMain
 			JOIN DeliverDetail as c on b.id=c.main
-			JOIN DeliverDetailOrderDetail as d on d.ix=c.id
-			LEFT JOIN DxDeliverDetail as f ON f.id=c.id
-			LEFT JOIN DxDeliverMain as g on g.id=b.id
-			JOIN OrderDetail as e ON e.id=d.xi
+			LEFT JOIN DxDeliverDetail as d ON d.id=c.id
+			LEFT JOIN DxDeliverMain as e on e.id=b.id
 		WHERE a.id = cutOffMain;
 };
 

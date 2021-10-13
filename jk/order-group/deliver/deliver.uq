@@ -47,9 +47,6 @@ IDX DxDeliverDetail (
 	tallyState TINYINT DEFAULT 0,			-- 理货状态：0 未完成，1已完成;
 	deliverReturn DEC(12,2) SUM,			-- 应退货
     returnDone dec(12, 2) DEFAULT 0,
-	-- 此次发货的特殊要求保存在此处
-	showPrice tinyint,
-	json text
 );
 
 -- 处理中的发货单
@@ -126,9 +123,8 @@ RETURNS main (
 RETURNS detail (
 	id ID,	--# [DeliverDetail],
 	orderDetail ID,
-	delivermain ID,
+	deliverMain ID,
 	item ID,
-	product ID,
 	deliverShould DEC(12,2),
 	pickDone DEC(12,2),
 	returnDone DEC(12,2)
@@ -140,13 +136,10 @@ RETURNS detail (
 			LEFT JOIN DxDeliverMain as b ON a.id=b.id
 		WHERE a.id=deliver;
 
-	INTO detail SELECT a.id, b.xi as orderDetail,
-		a.main as delivermain,			-- DeliverMain id
-		c.item, c.product,
-		a.quantity as deliverShould, d.pickDone, d.returnDone 
-		FROM DeliverDetail as a 
-			JOIN DeliverDetailOrderDetail as b on b.ix=a.id
-			JOIN OrderDetail as c ON c.id = b.xi
-			LEFT JOIN DxDeliverDetail as d ON a.id = c.id
+	INTO detail SELECT a.id, a.biz as orderDetail,
+		a.main as deliverMain,			-- DeliverMain id
+		a.item, a.quantity as deliverShould, b.pickDone, b.returnDone
+		FROM DeliverDetail as a
+			LEFT JOIN DxDeliverDetail as b ON b.id = a.id
 		WHERE a.main = deliver;
 };
