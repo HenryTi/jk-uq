@@ -11,7 +11,7 @@ ID TallyMain (
 ID TallyDetail(
     id,
     main ID TallyMain,
-    orderDetail ID,
+    biz ID,     -- 这个大概可以作为 发货单明细，不能是orderdetail
 	quantity DEC(12,2),
 );
 
@@ -38,10 +38,10 @@ RETURNS tallys(
 	WITH TallyMain as a ID=tally SET a.no=tallyNo, a.warehouse=warehouse;
 
 	FOR pickups {
-		FOR(VAR orderDetail ID, quantity int
-			OF SELECT p.orderDetail, p.quantity FROM PickupDetail as p WHERE p.main = pickup){
-			WITH TallyDetail as a ID=orderDetail
-				SET a.main=tally, a.orderDetail=orderDetail, a.quantity=quantity;
+		FOR(VAR biz ID, quantity int
+			OF SELECT p.biz, p.quantity FROM PickupDetail as p WHERE p.main = pickup){
+			WITH TallyDetail as a ID=biz
+				SET a.main=tally, a.biz=biz, a.quantity=quantity;
 		}
 		-- 要考虑去重复同一个订单明细可能会对应多个货位？ WITH... 的写法会不会自动处理？
 	}

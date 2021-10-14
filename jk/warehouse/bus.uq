@@ -10,18 +10,22 @@ BUS JkOrderBus ver 0.9 from 百灵威系统工程部/[jk-order]
                     , a.item=item, a.product=product
                     , a.quantity=quantity, a.amount=amount, a.price=price;
         }
-    }
+    };
+
+
+BUS JkDeliverBus ver 0.9 from 百灵威系统工程部/[jk-deliver]
     -- 这儿要接收deliver-pickup bus，即要求出库的bus，接收后，写入pending，开始出库，记账(shelfBlockInventory/ShelfBlockLotInventory及历史)
     -- 形成拣货单。 
     -- 替代方案是从老系统接收ShelfInOutBoundHistory bus，接收后，写入pending（暂存发货单号），不进行出库操作，直接记账
     -- 还需要一个 截单 bus，用来通知warehouse，该截单中的出库记录可以形成拣货单了（拣货单中要有对应的deliverDetail，需要从上面的pending中获取）
     ACCEPT pickup {
         FOR detail {
-            WITH IxPendingOutBound ixx = warehouse ix = cutOffMain xi = id 
-            set orderDetail = orderDetail, quantity = quantity, lotNumber = lotNumber;
+            WITH IxPendingOutBound ixx = warehouse ix = cutOffMain xi = biz 
+            set biz2 = biz2, item = item, quantity = quantity, lotNumber = lotNumber, json = json;
         }
         -- SCHEDULE AutoOutBound DELAY 2; -- 2分钟以后执行一次
     };
+
 
 BUS warehouseBus from [百灵威系统工程部]/warehouse
     ACCEPT productInventory {
@@ -37,6 +41,21 @@ BUS warehouseBus from [百灵威系统工程部]/warehouse
 
         history ShelfInOutBoundHistory set shelfBlock = shelfBlock, product = product, pack = pack,
                 inOutType = inOutType, quantity = quantity, inOutBoundTime = inOutBoundTime;
+        if(inOutType = 0) {
+            VAR cutOffMain ID, deliverDetail ID, warehouse ID;
+            SET cutOffMain = NULL;
+            SET cutOffMain = a.ix, deliverDetail = a.xi, warehouse = a.ixx
+                FROM IxPendingOutBound as a
+                WHERE a.biz2 = biz2 AND a.quantity >= quantity
+                LIMIT 1;
+    
+            IF(NOT cutOffMain IS NULL) {
+                WITH IxPendingPickup ixx = warehouse ix = cutOffMain xi = deliverDetail
+                set item = pack, shelfBlock = shelfBlock, quantity = quantity, lotNumber = lotNumber, json = json;
+                -- 是否在此删除 IxPendingOutBound 待出库数据？
+                SCHEDULE AutoPick(warehouse,cutOffMain) DELAY 2; -- 2分钟以后执行一次
+            }
+        }
     }
     ACCEPT shelfLotUpdateHistory {
         

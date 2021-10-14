@@ -106,6 +106,11 @@ RETURNS main (
     }
 
     -- 2、定义变量生成截单号
+    if not exists (select 1 from IxPendingRequest as a join RequestDetail as b on a.id = b.id
+    where b.warehouse = aWarehouse and b.cutOffType = cutOffType) {
+        RETURN; 
+    }
+
     VAR cutOffMain ID, cutOffMainNo CHAR(20);	
 	SET cutOffMainNo = NO(CutOffMain);
 	SET cutOffMain = ID(CutOffMain new, cutOffMainNo);
@@ -137,8 +142,6 @@ RETURNS main (
 		IF warehouse IS NULL {
 			BREAK;
 		}
-        -- 从任务表中删除已获取到的当前数据
-		DELETE a FROM IxPendingRequest as a WHERE a.id = requestDetail;
 
         -- 从临时表中查询是否存在，不存在则生成新发运单和临时理货号
 		VAR deliverMainId ID;
@@ -157,15 +160,20 @@ RETURNS main (
 		}
 		VAR deliverDetailId ID = ID(DeliverDetail new);
 		WITH DeliverDetail as a ID = deliverDetailId SET a.main = deliverMainId, a.biz = biz
-            , a.item = item, a.quantity = quantity, a.lotNumber = lotNumber;
+            , a.item = item, a.quantity = quantity, a.lotNumber = lotNumber, a.showPrice = showPrice, a.json = json;
 		-- WITH DeliverDetailOrderDetail ix = deliverDetailId xi = orderDetail;
         
-		WITH DxDeliverDetail as a ID = deliverDetailId SET a.showPrice = showPrice, a.json = json;
+		WITH DxDeliverDetail as a ID = deliverDetailId;
 		WITH DxDelivering as a ID = deliverMainId;
 		WITH DxDeliverMain as a ID = deliverMainId SET a.rows = a.rows + 1;
 		
+		-- biz是发运上游（订单明细/exchangeDetail）的id，
+		-- biz2是（订单明细/exchangeDetail）的id，因为目前出库在老系统中而截单在新系统，需要暂时存储到biz2中；此字段日后要去掉；
 		BUS JkDeliverBus.pickup INTO detail
-			ADD biz = deliverDetailId, item = item, quantity = quantity, lotNumber = lotNumber;
+			ADD biz = deliverDetailId, biz2 = biz, item = item, quantity = quantity, lotNumber = lotNumber, json = json;
+            
+        -- 从任务表中删除已获取到的当前数据
+		DELETE a FROM IxPendingRequest as a WHERE a.id = requestDetail;
 	}
 	LOG 'CutOff' SUBJECT 'end';
 	WITH Talling as a id = cutOffMain;
@@ -206,16 +214,14 @@ RETURNS detail (
 		WHERE a.id=cutOffMain;
 
 	INTO detail SELECT b.id as delivermain, b.trayNumber,
-		b.contact, b.customerAccount, g.carrier, g.waybillNumber, g.deliverTime,
-		c.id as deliverDetail, c.item, c.quantity as tallyShould, 
-		f.tallyDone, f.tallyState, c.lotNumber, f.showPrice, f.json as content
+		b.contact, b.customerAccount, e.carrier, e.waybillNumber, e.deliverTime,
+		c.id as deliverDetail, c.item, c.quantity as tallyShould,
+		d.tallyDone, d.tallyState, c.lotNumber, c.showPrice, c.json as content
 		FROM CutOffMain as a
 			JOIN DeliverMain as b on a.id=b.cutOffMain
 			JOIN DeliverDetail as c on b.id=c.main
-			JOIN DeliverDetailOrderDetail as d on d.ix=c.id
-			LEFT JOIN DxDeliverDetail as f ON f.id=c.id
-			LEFT JOIN DxDeliverMain as g on g.id=b.id
-			JOIN OrderDetail as e ON e.id=d.xi
+			LEFT JOIN DxDeliverDetail as d ON d.id=c.id
+			LEFT JOIN DxDeliverMain as e on e.id=b.id
 		WHERE a.id = cutOffMain;
 };
 
