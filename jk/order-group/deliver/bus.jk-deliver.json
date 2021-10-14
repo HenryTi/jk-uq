@@ -1,5 +1,14 @@
 {
     "$": "百灵威系统工程部/jk-deliver",
+    "note": [
+        "id: id",
+        "detail: note-detail"
+    ],
+    "note-detail": [
+        "id: id",
+        "biz: id",
+        "value: number"
+    ],
     "deliver-detail": [
         "biz: id",
         "item: id",
@@ -15,15 +24,25 @@
         "contact: id -- 发货地址id。",
         "detail: deliver-detail"
     ],
+    "deliver-done": [
+        "note"
+    ],
     "pickup-detail":[
         "biz: id    -- 发运单明细",
+        "biz2: id",
+        " -- biz2的说明：拣货上游（发运）的上游（订单明细/exchangeDetail）的id， 因为目前出库在老系统中，而截单在新系统中，为了将老系统中的",
+        " -- 出库记录和新系统中的deliverDetail进行匹配，则需要根据这个上游的上游id来进行。此字段日后要去掉",
         "item: id",
         "quantity: number",
-        "lotNumber: string"
+        "lotNumber: string",
+        "json: string"
     ],
     "pickup": [
         "warehouse: id",
-        "cutOffMain: id   -- 截单号",
+        "cutOffMain: id   -- 截单号, 实际上这个截单号没有用，现在是以其为单位打印拣货单，实际上拣货单有自己的生成逻辑，不再用截单号为单位",
         "detail: pickup-detail"
+    ],
+    "pickup-done": [
+        "note"
     ]
 }
