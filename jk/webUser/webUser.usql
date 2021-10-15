@@ -40,6 +40,7 @@ OPEN MAP WebUserContact(
         and not exists(select 1 from PendingAuditWebUser where webUser = $user){
             BOOK PendingAuditWebUser at($user);
         }
+
         bus webUserBus.WebUserContact set webUser = webUser, telephone = telephone, mobile = mobile,
             email = email, fax = fax, zipCode = zipCode, wechatId = wechatId, addressString = addressString,
             address = address;

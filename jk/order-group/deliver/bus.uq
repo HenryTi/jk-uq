@@ -1,3 +1,5 @@
+BUS JkDeliverBus from 百灵威系统工程部/[jk-deliver];
+
 BUS JkOrderBus from 百灵威系统工程部/[jk-order]
 ACCEPT order {
 	VAR mainId ID;

@@ -15,16 +15,22 @@ ACCEPT [receive-done] {
     FOR detail {
         WITH DxOrderDetail ID = id SET receiveDone += value, receiveTime = $date;
     }
-}
+};
+
+BUS JkDeliverBus ver 0.2 from 百灵威系统工程部/[jk-deliver]
 ACCEPT [deliver-done] {
     FOR detail {
-        WITH DxOrderDetail ID = orderdetail SET deliverDone += value, deliverTime = $date;
+        VAR orderDetail ID, orderMain ID;
+        SET orderDetail = null, orderMain = null;
 
-        var orderMain ID;
-        set orderMain = a.main from OrderDetail as a where a.id = orderdetail;
-        if not exists(select 1 from DxOrderDetail as a 
-        join OrderDetail as b on a.id = b.id where b.main = orderMain and a.deliver <= a.deliverDone) {
-            WITH DxOrderMainState ID = orderMain set state = EnumOrderState.delivered;
+        SET orderdetail = a.id, orderMain = a.main from OrderDetail as a where a.id = biz;
+        if(not orderdetail is null){
+            WITH DxOrderDetail ID = orderdetail SET deliverDone += value, deliverTime = $date;
+
+            if not exists(select 1 from DxOrderDetail as a 
+            join OrderDetail as b on a.id = b.id where b.main = orderMain and a.deliver < a.deliverDone) {
+                WITH DxOrderMainState ID = orderMain set state = EnumOrderState.delivered;
+            }
         }
     }
 };
