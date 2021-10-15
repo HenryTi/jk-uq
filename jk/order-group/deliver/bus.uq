@@ -50,10 +50,10 @@ ACCEPT deliver {
     WITH Request as a ID = requestID set a.customerAccount = customerAccount, a.contact = contact;
     FOR detail {
         -- 接收bus时候保存cutOffType, 目前根据stradeType区分发运类型。
-		VAR cutOffType ID;	-- 截单类型
+		VAR cutOffType ID;	-- 截单类型 
 		SET cutOffType = NULL;
 
-		-- xx2:盘亏	/ xx3:报废 / xx5:调库　/　xx4:研发（包含河北研发、河北生产、苏州研发，详细区分使用customerAccount）
+		-- xx2:盘亏	/ xx3:报废 / xx5:调库 / xx4:研发 / 销售（包含河北研发、河北生产、苏州研发，详细区分使用customerAccount）
 		IF (stradeType ='xx2') {
 			SET cutOffType = a.id FROM CutOffType AS a where a.name = '盘亏截单';
 		} ELSE IF (stradeType ='xx3') {
