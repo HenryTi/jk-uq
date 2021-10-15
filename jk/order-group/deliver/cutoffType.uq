@@ -22,3 +22,36 @@ IX IxCutoffTypeDefinition (
     ix,     -- CustomerId
     xi,     -- CutOffType
 );
+
+/*
+-- 查询截单类型列表
+QUERY GetCutOffTypeList(
+)RETURNS list (
+	cutOffType ID,
+	no char(50),
+	customer ID,
+	tradetype char(10)
+) {
+	INTO list SELECT a.id as cutOffType, a.no, a.customer, a.tradetype
+		FROM CutOffType as a
+		order by a.[$create] DESC;
+};
+
+-- 查询截单类型详情
+QUERY GetCutOffType(
+	cutOffType ID
+) RETURNS ret (
+	id ID,
+	no char(50),
+	customer ID,
+	tradeType char(10),
+	createTime datetime,
+	--owner ID			-- owner报错无法使用？
+)
+{
+	INTO ret SELECT a.id, a.no, a.customer, a.tradeType,
+		a.[$create] as createTime --, a.[$owner] as owner
+		FROM CutOffType as a
+		WHERE a.id = cutOffType;
+};
+*/

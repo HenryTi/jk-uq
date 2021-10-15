@@ -58,100 +58,6 @@ IX IxPendingPickup (
     json text,
 );
 
-ACT TrySchedule(p INT)
-{
-	LOG concat('TrySchedule ', p) SUBJECT 'test';
-};
-
-ACT TrySchedule1()
-{
-	LOG concat('TrySchedule1') SUBJECT 'test schedule';
-};
-
-ACT Picking (
-	pickup ID,
-) {
-	WITH DxPicking ID=pickup;
-	WITH Pickup ID=pickup SET picker=$user, startTime=$date, finishTime=null;
-};
-
-ACT PickedSingle(
-	pickupDetail ID,
-	quantity dec(18, 4)
-){
-	WITH pickupDetail ID=pickupDetail SET pickDone=quantity, pickState=1;
-};
-
-ACT Picked (
-	pickup ID,
-	ARR detail (
-        pickupDetail ID,
-		biz ID,	-- 发货单明细id
-		quantity DEC(12,2)	-- 实际拣货数
-	)
-) {
-	WITH DxPicking ID=pickup DEL;
-	WITH Pickup ID=pickup SET finishTime=$date;
-    BUS JkDeliverBus.[pickup-done] SET id = pickup;
-	FOR detail {
-		-- todo：检查出库数与拣货数不一致的话，生成退货
-		-- 拣货完成
-		BUS JkDeliverBus.[pickup-done] into detail ADD id = pickupDetail, biz = biz, value = quantity;
-	}
-};
-
--- 把当前所有待发货条目，生成发运单和拣货单
-ACT OutBound(
-	warehouse ID,
-	pickupMaxRows INT
-)
-RETURNS pickups (
-	id ID,
-	no CHAR(20),			-- 拣货单编号
-)
-RETURNS delivers (
-	id ID,
-	no CHAR(20),			-- 发运单编号
-) {
-	-- 操作权限检查
-	IF NOT exists(SELECT ix FROM IxUserWarehouse WHERE ix=$user AND xi=warehouse) {
-		RETURN;
-	}
-
-	-- 生成拣货单
-	IF pickupMaxRows IS NULL {
-		SET pickupMaxRows=1000;
-	}
-	TABLE tblPickup(key orderDetail ID);
-	WHILE 1=1 { 
-		DELETE FROM tblPickup as a WHERE 1=1;
-		INTO tblPickup SELECT a.xi as orderDetail 
-				FROM IxPendingOutBound as a
-					LEFT JOIN PickupDetail as b ON a.xi=b.id
-					LEFT JOIN DxPicking as c ON b.main=c.id
-				WHERE a.ix=warehouse
-				LIMIT pickupMaxRows;
-		IF (select count(*) from tblPickup)=0 {
-			BREAK;
-		}
-		DELETE a 
-			FROM IxPendingOutBound as a JOIN tblPickup as b ON a.xi=b.orderDetail
-			WHERE a.ix=warehouse;
-		VAR pickup ID, pickupNo CHAR(20);
-		SET pickupNo=NO(Pickup);
-		SET pickup=ID(Pickup new, pickupNo);
-		WITH Pickup as a ID=pickup SET a.warehouse=warehouse;
-		WITH DxPicking as a ID=pickup;
-		FOR (VAR orderDetail ID
-			OF SELECT a.orderDetail FROM tblPickup as a)
-		{
-			WITH PickupDetail ID=orderDetail SET main=pickup;
-		}
-		WITH DxPicking ID=pickup;
-		INTO pickups SELECT pickup as id, pickupNo as no;
-	}
-};
-
 
 -- 把当前所有待发货条目，进行出库（下面的autoPick是将出库结果生成拣货单）
 -- 这个里面还缺少“出库”的记账操作，正好暂时不做
@@ -235,6 +141,14 @@ ACT AutoPick (
     }
 };
 
+-- 领取拣货单
+ACT Picking (
+	pickup ID,
+) {
+	WITH DxPicking ID=pickup;
+	WITH Pickup ID=pickup SET picker=$user, startTime=$date, finishTime=null;
+};
+
 QUERY WarehousePickups(
 	-- warehouse ID,
 )
@@ -289,4 +203,40 @@ RETURNS detail (
 		a.quantity as shouldQuantity, a.pickdone, a.pickstate, a.lotNumber, a.json
 		FROM PickupDetail as a 
 		WHERE a.main=pickup;
+};
+
+ACT PickedSingle(
+	pickupDetail ID,
+	quantity dec(18, 4)
+){
+	WITH pickupDetail ID=pickupDetail SET pickDone=quantity, pickState=1;
+};
+
+ACT Picked (
+	pickup ID,
+	ARR detail (
+        pickupDetail ID,
+		biz ID,	-- 发货单明细id
+		quantity DEC(12,2)	-- 实际拣货数
+	)
+) {
+	WITH DxPicking ID=pickup DEL;
+	WITH Pickup ID=pickup SET finishTime=$date;
+    BUS JkDeliverBus.[pickup-done] SET id = pickup;
+	FOR detail {
+		-- todo：检查出库数与拣货数不一致的话，生成退货
+		-- 拣货完成
+		BUS JkDeliverBus.[pickup-done] into detail ADD id = pickupDetail, biz = biz, value = quantity;
+	}
+};
+
+
+ACT TrySchedule(p INT)
+{
+	LOG concat('TrySchedule ', p) SUBJECT 'test';
+};
+
+ACT TrySchedule1()
+{
+	LOG concat('TrySchedule1') SUBJECT 'test schedule';
 };
