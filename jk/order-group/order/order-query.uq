@@ -17,7 +17,7 @@ PAGE (
             inner join tv_dxordermainstate os ON os.id = a.id
     WHERE a.id > `_$pagestart` and (os.state = `_state` OR `_state` IS NULL) and a.customer = `_customer`
         AND (`_keyWord` IS NULL or p.description like concat('%', `_keyWord`, '%') OR a.no = `_keyWord` OR pc.cas = `_keyWord`)
+    ORDER BY a.createDate DESC
     LIMIT   `_$pagesize`;
-
     -/
 };
