@@ -49,10 +49,31 @@ ACCEPT deliver {
     VAR requestID ID = ID(Request new);
     WITH Request as a ID = requestID set a.customerAccount = customerAccount, a.contact = contact;
     FOR detail {
-        -- todo:接收bus时候保存cutOffType（截单类型）,
+        -- 接收bus时候保存cutOffType, 目前根据stradeType区分发运类型。
+		VAR cutOffType ID;	-- 截单类型
+		SET cutOffType = NULL;
+
+		-- xx2:盘亏	/ xx3:报废 / xx5:调库　/　xx4:研发（包含河北研发、河北生产、苏州研发，详细区分使用customerAccount）
+		IF (stradeType ='xx2') {
+			SET cutOffType = a.id FROM CutOffType AS a where a.name = '盘亏截单';
+		} ELSE IF (stradeType ='xx3') {
+			SET cutOffType = a.id FROM CutOffType AS a where a.name = '报废截单';
+		} ELSE IF (stradeType ='xx5') {
+			SET cutOffType = a.id FROM CutOffType AS a where a.name = '调库截单';
+		} ELSE {
+			SET cutOffType = c.id
+			FROM DeliverType as a
+				JOIN IxCutoffTypeDefinition as b ON b.ixx = a.id
+				JOIN CutOffType as c ON c.id = b.xi
+			WHERE b.ix = customerAccount;
+		}
+
+		IF cutOffType IS NULL {
+			SET cutOffType = a.id FROM CutOffType AS a where a.name = '客户订单截单';
+		}
         VAR requestDetailID ID = ID(RequestDetail new); 
 		-- biz是发运的上游（订单明细/exchangeDetail）的id
-        WITH RequestDetail as a ID requestDetailID set a.main = requestID, a.biz = biz, a.item = item
+        WITH RequestDetail as a ID requestDetailID set a.main = requestID, a.biz = biz, a.item = item, a.cutOffType = cutOffType
             , a.warehouse = warehouse, a.quantity = quantity, a.lotNumber = lotNumber, a.showPrice = showPrice
             , a.json = json;
         WITH IxPendingRequest ID requestDetailID; 
