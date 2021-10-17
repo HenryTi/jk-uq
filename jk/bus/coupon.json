@@ -1,20 +1,26 @@
 {
+    "couponOrCreditsCreated": [
+        "couponOrCredits: id",
+        "types: string",
+        "creator: id",
+        "createTime: string"
+    ],
     "creditsUsedByWebUser": [
-        { "name": "orderId", "type": "string" },
-        { "name": "webUser", "type": "id" },
-        { "name": "amount", "type": "number" },
-        { "name": "currency", "type": "id" },
-        { "name": "point", "type": "number" },
-        { "name": "coupon", "type": "id" },
+        "orderId: string",
+        "webUser: id",
+        "amount: number",
+        "currency: id",
+        "point: number",
+        "coupon: id",
         { "name": "orderItems", "type": "array", "fields": "orderItem" }
     ],
     "creditsUsedByCustomer": [
-        { "name": "orderId", "type": "string" },
-        { "name": "customer", "type": "id" },
-        { "name": "amount", "type": "number" },
-        { "name": "currency", "type": "id" },
-        { "name": "point", "type": "number" },
-        { "name": "coupon", "type": "id" },
+        "orderId: string",
+        "customer: id",
+        "amount: number",
+        "currency: id",
+        "point: number",
+        "coupon: id",
         { "name": "orderItems", "type": "array", "fields": "orderItem" }
     ],
    "orderItem": [
@@ -23,10 +29,10 @@
         { "name": "point", "type": "number" }
     ],
    "creditsDrawedByWebUser": [
-        { "name": "webUser", "type": "id" },
-        { "name": "coupon", "type": "id" },
-        { "name": "createDate", "type": "string" },
-        { "name": "expiredDate", "type": "string" }
+        "webUser: id",
+        "coupon: id",
+        "createDate: string",
+        "expiredDate: string"
     ],
     "creditsDrawedByCustomer": [
         { "name": "customer", "type": "id" },
@@ -34,18 +40,42 @@
         { "name": "coupons", "type": "array", "fields": "couponDrawed" }
     ],
     "couponDrawed": [
-        { "name": "coupon", "type": "id" },
-        { "name": "createDate", "type": "string" },
-        { "name": "expiredDate", "type": "string" }
+        "coupon: id",
+        "createDate: string",
+        "expiredDate: string"
+    ], 
+    "getWebUserAllCredits": {
+         "param": [ {"name": "webUser", "type": "id"} ],
+         "returns": [
+              "webUser:id",
+              "creditsDrawed: couponDrawed", "creditsUsed: couponUsed",
+              "couponDrawed: couponDrawed", "couponUsed: couponUsed"
+         ]
+    },
+    "couponUsed": [
+        "coupon: id",
+        "saleOrder: string",
+        "usedDate: string"
     ],
-    "creditsInnerMatched": [
-        { "name": "orderId", "type": "string" },
-        { "name": "customer", "type": "id" },
-        { "name": "webUser", "type": "id" },
-        { "name": "amount", "type": "number" },
-        { "name": "currency", "type": "id" },
-        { "name": "point", "type": "number" },
-        { "name": "coupon", "type": "id" },
-        { "name": "orderItems", "type": "array", "fields": "orderItem" }
+    "getMatchedCredits": {
+        "param": [
+            {"name": "customer", "type": "id"}, 
+            {"name": "orderItemId", "type": "string"}, 
+            {"name": "createDate", "type": "string"}
+        ],
+        "returns": ["credits:id"]
+    },
+    "order-coupon": [
+        "id: id",
+        "couponUser: id",
+        "coupon: id",
+        "detail: order-coupon-detail"
+    ],
+    "order-coupon-detail": [
+        "id: id"
+    ],
+    "customer-bounded": [
+        "customer: id",
+        "salesman: id"
     ]
 }

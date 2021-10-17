@@ -1,27 +1,33 @@
 IX CustomerBound (
     ix,     -- customer
-    xi,     -- salesman webuser
+    xi,     -- salesman employee id
     boundDate   date,
     boundDays   smallint,
+    boundType   ENUM EnumBoundType
 );
+
+ENUM EnumBoundType (assign = 1, coupon = 2);
 
 HISTORY CustomerBoundHistory (
     date,
     customer    ID,
-    boundTo    ID,
+    boundTo     ID,
+    boundType   ENUM EnumBoundType,
     operation   tinyint,    -- 1:绑定；0:解绑
 );
 
 IX WebUserBound (
     ix,     -- webuser
-    xi,     -- salesman webuser
+    xi,     -- salesman employee id
     boundDate   date,
     boundDays   smallint,
+    boundType   ENUM EnumBoundType
 );
 
 HISTORY WebUserBoundHistory (
     date,
     webuser    ID,
     boundTo    ID,
+    boundType   ENUM EnumBoundType,
     operation   tinyint,    -- 1:绑定；0:解绑
 );

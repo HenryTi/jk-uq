@@ -25,9 +25,9 @@ MAP BottomDiscount (
 );
 
 IX IxCouponUsed (
-    ix,     -- coupon
-    xi,     -- order id
-    order ID
+    ixx,    -- coupon
+    ix,     -- couponUser customer
+    xi,     -- order
 );
 
 -- 添加优惠码
@@ -53,7 +53,6 @@ ACTION CreateCoupon(
 ACTION IsCanUseCoupon (
     code char(20),
     customer ID,
-    webUser ID [$user]
 )
 returns ret (
     result  bigint,
@@ -82,16 +81,11 @@ returns ret (
     where   c.code = code;
 
     var orderX char(50);   --被使用的订单
-    set orderX = a.order from IxCouponUsed as a where a.ix = id and a.xi = webUser limit 1;
+    set orderX = a.ix from IxCouponUsed as a where a.ix = id and a.xi = customer limit 1;
 
     var salesmanBounded ID [$user];    --客户的当前轻代理
-    if(not customer is null){
-        set salesmanBounded = c.xi from CustomerBound as c 
-        where c.ix = customer and c.boundDate > dateadd(day, c.boundDays, now()) limit 1; --当前轻代理
-    }else{
-        set salesmanBounded = c.xi from CustomerBound as c 
-        where c.ix = webUser and c.boundDate > dateadd(day, c.boundDays, now()) limit 1; --当前轻代理
-    }
+    set salesmanBounded = c.xi from CustomerBound as c 
+    where c.ix = customer and c.boundDate > dateadd(day, c.boundDays, now()) limit 1; --当前轻代理
 
     if (coupon is null) {
         set result = 0;  --不存在
@@ -100,7 +94,7 @@ returns ret (
     } else if (not orderX is null and type <> EnumCouponType.vipcard) {
         set result = 4;  --当前user已经使用了该券
     } else if (not salesmanBounded is null and salesmanBounded <> creator)  {
-        set result = 5;  --不是当前的轻代理( 有当前轻代理 和 优惠码的轻代理 不相同 )
+        set result = 5;  --不是当前的轻代理( 客户的当前轻代理 和 优惠码的生成者 不相同 )
     } else if (creator = $user)  {
         set result = 6;  --轻代理不能用自己的优惠码下单
     } else {
