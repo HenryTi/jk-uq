@@ -1,0 +1,55 @@
+bus JkOrderBus from 百灵威系统工程部/[jk-order];
+
+bus cBus from 百灵威系统工程部/coupon
+    ACCEPT [order-coupon] {
+        VAR currentBound ID, boundDate date, boundDays smallint, boundType ENUM EnumBoundType;
+        SET currentBound = t.xi, boundDate = t.boundDate, boundDays = t.boundDays, boundType = t.boundType
+        from CustomerBound as t where t.ix = couponUser;
+
+        if(coupon > 0){
+            VAR couponSender ID;
+            SET couponSender = t.creator from Coupon as t where t.id = coupon;
+            if(currentBound <> couponSender and dateadd(day, boundDays, boundDate) < date(now())){
+                HISTORY CustomerBoundHistory 
+                    set customer = couponUser, boundTo = currentBound, boundType = boundType, operation = 0;
+                HISTORY CustomerBoundHistory 
+                    set customer = couponUser, boundTo = couponSender, boundType = EnumBoundType.coupon, operation = 1;
+                set currentBound = couponSender, boundType = EnumBoundType.coupon;
+            }
+
+            WITH IxCouponUsed ixx = coupon ix = couponUser xi = id;
+        }
+        if(not currentBound is null){
+            WITH CustomerBound ix = couponUser xi = currentBound 
+                set boundDate = date(now()), boundDays = ifnull(boundDays, 90), boundType = boundType; 
+
+            /*
+            BUS JkOrderBus.[order-bound-staff-sales] set order = id;
+            BUS JkOrderBus.[order-bound-staff-sales] into [to] ADD [id] = currentBound, [bound-type] = 'assign';
+            if(boundType = EnumBoundType.coupon){
+                BUS JkOrderBus.[order-bound-staff-sales] into [to] ADD [id] = currentBound, [bound-type] = 'coupon';
+            }
+            */
+        }
+    }
+    ACCEPT [customer-bounded] {
+        VAR currentBound ID, boundDate date, boundDays smallint, boundType ENUM EnumBoundType;
+        SET currentBound = t.xi, boundDate = t.boundDate, boundDays = t.boundDays, boundType = t.boundType
+        from CustomerBound as t where t.ix = customer;
+
+        if(currentBound is null){
+            WITH CustomerBound ix = customer xi = salesman 
+                set boundDate = date(now()), boundDays = 90, boundType = EnumBoundType.assign; 
+            HISTORY CustomerBoundHistory 
+                set customer = customer, boundTo = salesman, boundType = EnumBoundType.assign, operation = 1;
+        }else{
+            if(currentBound <> salesman and boundType = EnumBoundType.assign){
+                WITH CustomerBound ix = customer xi = salesman 
+                    set boundDate = date(now()), boundDays = boundDays, boundType = EnumBoundType.assign; 
+                HISTORY CustomerBoundHistory 
+                    set customer = customer, boundTo = currentBound, boundType = EnumBoundType.assign, operation = 0;
+                HISTORY CustomerBoundHistory 
+                    set customer = customer, boundTo = salesman, boundType = EnumBoundType.assign, operation = 1;
+            } 
+        }
+    };

@@ -121,9 +121,8 @@
         "binding: string"
     ],
     "order-bound-detail":[
-        "type: string  -- sales, person-client, 预定义的类型",
         "id: id  -- 指定类型的id",
-        "id-type: string -- staff, customer, 如果没有值，id表示webUser"
+        "bound-type: string -- assign | coupon, 和所在的face有关"
     ],
     "order-bound": [
         "-- order id, coupon体系根据coupon，找到order的绑定人",

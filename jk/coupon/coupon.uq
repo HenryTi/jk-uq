@@ -1,0 +1,126 @@
+ENUM EnumCouponType (coupon = 1, credits = 2, vipCard = 3);
+
+ID Coupon (
+    id,
+    key code char(20),
+    type ENUM EnumCouponType, 
+    validityDate date,
+    isValid tinyint default 1,
+    creator ID [$user],    -- 生成人
+    createDate datetime,
+    sys(create),
+);
+
+-- 优惠券折扣设置/VIPCard折扣设置都存在该表中
+MAP VIPCardDiscount(
+    key coupon ID Coupon,
+    key brand ID Brand,
+    discount dec(12, 4) not null,
+);
+
+-- 各品牌的最低折扣
+MAP BottomDiscount (
+    key brand ID Brand,
+    discount dec(12, 4) not null, 
+);
+
+IX IxCouponUsed (
+    ixx,    -- coupon
+    ix,     -- couponUser customer
+    xi,     -- order
+);
+
+-- 添加优惠码
+ACTION CreateCoupon(
+    type ENUM EnumCouponType,
+    validityDate date,
+)returns ret (
+    coupon ID Coupon,
+    code char(20)
+){
+    var code varchar(20);
+    set code = (RAND() * 100000000) + 100000000;
+    set code = substr(code, 1, 8);
+ 
+    var couponId ID;
+    set couponId = ID(Coupon new, code);
+    WITH Coupon as a ID couponId set a.type = type, a.validityDate = validityDate, a.creator = $user; 
+
+    into ret select couponId as coupon, code;
+};
+
+-- 验证优惠码是否可用
+ACTION IsCanUseCoupon (
+    code char(20),
+    customer ID,
+)
+returns ret (
+    result  bigint,
+    id      bigint,
+    code   char(20),
+    type ENUM EnumCouponType, 
+    validityDate date,
+    isValid tinyint default 1,
+    creator ID [$user]
+) {
+    var result      bigint,     --返回结果
+    id              bigint,     --优惠码id
+    coupon          char(8),    --优惠码
+    type ENUM EnumCouponType,            --优惠码类型
+    validityDate    datetime,   --有效期
+    isValid         smallint,   --是否有效
+    creator ID       [$user];    --优惠码的轻代理
+
+    set     id = c.id,
+            coupon = c.code,
+            type = c.type,
+            validityDate = c.validityDate,    --有效期
+            isValid = c.isValid,              --是否有效
+            creator = c.creator
+    from    Coupon as c
+    where   c.code = code;
+
+    var orderX char(50);   --被使用的订单
+    set orderX = a.ix from IxCouponUsed as a where a.ix = id and a.xi = customer limit 1;
+
+    var salesmanBounded ID [$user];    --客户的当前轻代理
+    set salesmanBounded = c.xi from CustomerBound as c 
+    where c.ix = customer and c.boundDate > dateadd(day, c.boundDays, now()) limit 1; --当前轻代理
+
+    if (coupon is null) {
+        set result = 0;  --不存在
+    } else if (isValid <> 1 or validityDate < now()) {
+        set result = 2;  --无效的优惠码
+    } else if (not orderX is null and type <> EnumCouponType.vipcard) {
+        set result = 4;  --当前user已经使用了该券
+    } else if (not salesmanBounded is null and salesmanBounded <> creator)  {
+        set result = 5;  --不是当前的轻代理( 客户的当前轻代理 和 优惠码的生成者 不相同 )
+    } else if (creator = $user)  {
+        set result = 6;  --轻代理不能用自己的优惠码下单
+    } else {
+        set result = 1;  --正常
+    };
+    into ret select result, id, code, type, validityDate, isValid, creator;
+};
+
+-- 搜索我的优惠码
+QUERY SearchCoupon(key char(20), type ENUM EnumCouponType)
+PAGE (
+    id bigint start 0,
+    code char(20),
+    type ENUM EnumCouponType,
+    validityDate date,
+    isValid smallint,
+    creator ID [$user],
+    createDate datetime,
+) {
+    var key2 char(102);
+    set key2 = concat('%', key, '%');
+
+    PAGE select m.id, m.code, m.type, m.validityDate, m.isValid, m.creator, m.createDate
+    from    Coupon as m
+    where   m.creator = $user and m.id > $pageStart and (m.code like key2 or key is null)
+            and m.type = type 
+    order by m.createDate desc
+    limit $pageSize;
+};

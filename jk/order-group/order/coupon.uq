@@ -27,12 +27,14 @@ returns ret (
 };
 */
 
+-- 记录某订单上的某enduser使用的积分券
 IX IxOrderMainCustomerCoupon (
     ixx,    -- orderMain
     ix,     -- endUser
     xi,     -- credits
 );
 
+-- 记录某个订单明细使用了coupon
 IX IxOrderDetailCoupon (
     ix,     -- orderDetail
     xi,     -- credits

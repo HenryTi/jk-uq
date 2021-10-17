@@ -46,10 +46,12 @@ BUS couponBus.getMatchedCredits as q into tb {
             JOIN OrderMain as b on a.id = b.id 
     where   a.id = orderMainId;
 
-    var lQuantity dec(18, 4), lPrice dec(18,4), lBottomPrice dec(18, 4);
-    set lQuantity = b.quantity, lPrice = b.price, lBottomPrice = a.bottomPrice
+    var lQuantity dec(18, 4), lPrice dec(18,4), lBottomPrice dec(18, 4), lCoupon ID, lOrderDetailID ID;
+    set lQuantity = b.quantity, lPrice = b.price, lBottomPrice = a.bottomPrice, lCoupon = c.xi
+        , lOrderDetailID = a.id
     from    OrderDetailEx as a
             JOIN OrderDetail as b on a.id = b.id
+            LEFT JOIN IxOrderDetailCoupon as c on c.ix = a.id
     where   a.id = orderDetailId;
 
     WITH OrderMain ID=orderMainId SET buyerAccount = buyerAccount
@@ -106,6 +108,11 @@ BUS couponBus.getMatchedCredits as q into tb {
         bus couponBus.creditsUsedByCustomer into orderItems add orderItemId = orderItemId;
     }
 
+    if(ifnull(lOrderDetailID, 0) = 0 or ifnull(lCoupon, 0) <> ifnull(creditsId, 0)){
+        bus couponBus.[order-coupon] set id = orderMainId, couponUser = endUserId, coupon = creditsId;
+        bus couponBus.[order-coupon] into detail add id = orderDetailId;
+    }
+
     if(quantity > 0) {
         -- endUser <> ifnull(lEndUser, 0) or quantity <> ifnull(lQuantity, 0) or price <> ifnull(lPrice, 0)
         -- or mark <> ifnull(lMark, '') or tradeType <> ifnull(lTradeType)) {
@@ -131,11 +138,6 @@ BUS couponBus.getMatchedCredits as q into tb {
         BUS JkOrderBus.[order-sale-cost] set order = orderMainId;
         BUS JkOrderBus.[order-sale-cost] into [detail]
             ADD [order-detail] = orderDetailId, [cost] = bottomPrice;
-    }
-
-    if(ifnull(lSalesman, 0) <> ifnull(salesman, 0)){
-        BUS JkOrderBus.[order-bound-staff-sales] set order = orderMainId;
-        BUS JkOrderBus.[order-bound-staff-sales] into [to] ADD [id] = salesman;
     }
 }
 ACCEPT returnChanged {
