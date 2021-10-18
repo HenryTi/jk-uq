@@ -23,19 +23,19 @@ IX IxCutoffTypeDefinition (
     xi,     -- CutOffType
 );
 
-/*
+
 -- 查询截单类型列表
 QUERY GetCutOffTypeList(
 )RETURNS list (
 	cutOffType ID,
-	no char(50),
-	customer ID,
-	tradetype char(10)
+	name char(50)
 ) {
-	INTO list SELECT a.id as cutOffType, a.no, a.customer, a.tradetype
+	INTO list SELECT a.id as cutOffType, a.name
 		FROM CutOffType as a
 		order by a.[$create] DESC;
 };
+
+/*
 
 -- 查询截单类型详情
 QUERY GetCutOffType(
