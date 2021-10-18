@@ -28,6 +28,21 @@ IDX Talling (
     id,
 );
 
+/* 查询库房待截单数量 */
+QUERY GetReadyCutOffCount(
+)
+RETURNS ret (
+	warehouse ID,
+	id ID
+) {
+    INTO ret SELECT b.warehouse, b.id
+    FROM IxPendingRequest as a
+        JOIN RequestDetail as b ON a.id = b.id
+        JOIN Request as d ON b.main = d.id
+        JOIN IxUserWarehouse as c on c.xi = b.warehouse
+	where c.ix = $user;
+};
+
 /* 查询库房待截单数据 */
 QUERY GetReadyCutOffList(
     warehouse ID,

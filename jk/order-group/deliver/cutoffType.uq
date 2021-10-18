@@ -32,7 +32,7 @@ QUERY GetCutOffTypeList(
 ) {
 	INTO list SELECT a.id as cutOffType, a.name
 		FROM CutOffType as a
-		order by a.[$create] DESC;
+		order by a.id;
 };
 
 /*
