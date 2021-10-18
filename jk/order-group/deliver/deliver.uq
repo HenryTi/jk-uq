@@ -76,11 +76,10 @@ ACT Delivered(
 ){
 	WITH DxDelivering ID=deliver DEL;
 	WITH DxDeliverMain ID=deliver SET finishTime=$date;
+	BUS JkDeliverBus.[deliver-done] set id = deliver;
 	FOR detail {
 		WITH DxDeliverDetail as a ID = deliverDetail SET a.deliverDone = quantity;
-		-- Bus暂时未发，修改订单状态; 是否需要deliveryConfirm？
-		-- BUS JkOrderBus.[deliver-done] INTO detail
-        --    ADD id=deliverDetailId, orderDetail=orderDetail, value=quantity;
+    	BUS JkDeliverBus.[deliver-done] into detail ADD id = deliverDetail, biz = orderDetail, value = quantity; 
 	}
 };
 
