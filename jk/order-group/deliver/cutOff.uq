@@ -28,8 +28,8 @@ IDX Talling (
     id,
 );
 
-/* 查询库房待截单数量 */
-QUERY GetReadyCutOffCount(
+/* 查询库房待截单数据(首页加载时查询库房任务) */
+QUERY GetWarehouseReadyCutOffCount(
 )
 RETURNS ret (
 	warehouse ID,
@@ -43,7 +43,7 @@ RETURNS ret (
 	where c.ix = $user;
 };
 
-/* 查询库房待截单数据 */
+/* 查询库房、截单类型待截单数据列表 */
 QUERY GetReadyCutOffList(
     warehouse ID,
     cutOffType ID,
@@ -168,6 +168,11 @@ RETURNS main (
             
         -- 从任务表中删除已获取到的当前数据
 		DELETE a FROM IxPendingRequest as a WHERE a.id = requestDetail;
+		
+		-- 待截单任务太多（目前同步了一个月内数据有13000多，正常处理不会积攒这么多），增加最大托盘50，超过则跳出此次截单;
+		IF (trayNumber > 50) {
+			BREAK;
+		}
 	}
 	LOG 'CutOff' SUBJECT 'end';
 	WITH Talling as a id = cutOffMain;
