@@ -97,7 +97,7 @@ ACT AutoPick (
 ) {
 	-- 生成拣货单
 	VAR pickupMaxRows INT = 100;
-	TABLE tblWarehousePickup(key warehouse ID, key cutOffMain ID, pickup ID, rows INT);
+	TABLE tblWarehousePickup(warehouse ID, cutOffMain ID, pickup ID, rows INT);
     WHILE 1 = 1 {
         VAR warehouse ID, biz ID, item ID, shelfBlock ID, quantity dec(18, 4), lotNumber char(50), json text;
         SET warehouse = NULL;
