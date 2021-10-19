@@ -48,21 +48,23 @@ QUERY GetReadyCutOffList(
     warehouse ID,
     cutOffType ID,
 )
-RETURNS list (
+PAGE(
+	id bigint start 0,
     orderDetail ID,
 	item ID,
 	shouldQuantity DEC(12,2),
     customerAccount ID
 ) {
-    INTO list SELECT b.biz as orderDetail,
+    page SELECT a.id, b.biz as orderDetail,
         b.item, b.quantity as shouldQuantity,
         d.customerAccount
     FROM IxPendingRequest as a
         JOIN RequestDetail as b ON a.id = b.id
         JOIN Request as d ON b.main = d.id
         JOIN IxUserWarehouse as c on c.ix = $user AND c.xi = b.warehouse
-    WHERE b.warehouse = warehouse and b.cutOffType = cutOffType
-    ORDER BY b.warehouse, b.cutOffType, d.contact, b.biz;
+    WHERE b.warehouse = warehouse and b.cutOffType = cutOffType and a.id > $pageStart
+    ORDER BY b.warehouse, b.cutOffType, d.contact, a.id
+	limit $pageSize;
 };
 
 /* 
@@ -128,7 +130,7 @@ RETURNS main (
             JOIN RequestDetail as b ON b.id = a.id
             JOIN Request as c ON c.id = b.main
         WHERE b.warehouse = aWarehouse and b.cutOffType = cutOffType
-        ORDER BY b.warehouse, b.cutOffType, c.contact, b.biz
+        ORDER BY b.warehouse, b.cutOffType, c.contact, a.id
         LIMIT 1;
 
 		IF warehouse IS NULL {
