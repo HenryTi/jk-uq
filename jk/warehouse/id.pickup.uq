@@ -46,6 +46,15 @@ IX IxPendingOutBound (
     json text,
 );
 
+-- 出库结果pending
+IX IxPendingOutBoundResult(
+	ixx,    -- biz2
+	ix,		-- shelfBlock
+	xi,		-- quantity
+	item ID,
+	lotNumber char(50)
+);
+
 -- 出库后待拣货的pending
 IX IxPendingPickup (
     ixx, -- Warehouse,
@@ -116,7 +125,7 @@ ACT AutoPick (
         VAR pickup ID, pickupNo CHAR(20), rows INT;
         SET pickup=NULL;
         SET pickup=a.pickup, rows=a.rows FROM tblWarehousePickup as a 
-        WHERE a.warehouse=warehouse and a.cutOffMain = cutOffMain;
+        WHERE a.warehouse=warehouse and a.cutOffMain = cutOffMain limit 1;
         IF rows>pickupMaxRows {
             SET pickup=NULL;
             DELETE a FROM tblWarehousePickup as a WHERE a.warehouse = warehouse and a.cutOffMain = cutOffMain;
