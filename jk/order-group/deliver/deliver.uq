@@ -36,7 +36,8 @@ ID DeliverDetail GLOBAL(
     quantity dec(18, 4),
     lotNumber char(50),
     showPrice tinyint,
-    json text
+    json text,
+    index idx_biz(biz),
 );
 
 IDX DxDeliverDetail (
