@@ -23,12 +23,10 @@ bus cBus from 百灵威系统工程部/coupon
             WITH CustomerBound ix = couponUser xi = currentBound 
                 set boundDate = date(now()), boundDays = ifnull(boundDays, 90), boundType = boundType; 
 
-            /*
             BUS JkOrderBus.[order-bound-staff-sales] set order = id;
             BUS JkOrderBus.[order-bound-staff-sales] into [to] ADD [id] = currentBound, [bound-type] = 'assign';
             if(boundType = EnumBoundType.coupon){
                 BUS JkOrderBus.[order-bound-staff-sales] into [to] ADD [id] = currentBound, [bound-type] = 'coupon';
             }
-            */
         }
     };

@@ -41,9 +41,16 @@
     ],
     "couponDrawed": [
         "coupon: id",
+        "couponType: id",
+        "couponCode: number",
         "createDate: string",
         "expiredDate: string"
     ], 
+    "couponUsed": [
+        "coupon: id",
+        "saleOrder: string",
+        "usedDate: string"
+    ],
     "getWebUserAllCredits": {
          "param": [ {"name": "webUser", "type": "id"} ],
          "returns": [
@@ -52,11 +59,6 @@
               "couponDrawed: couponDrawed", "couponUsed: couponUsed"
          ]
     },
-    "couponUsed": [
-        "coupon: id",
-        "saleOrder: string",
-        "usedDate: string"
-    ],
     "getMatchedCredits": {
         "param": [
             {"name": "customer", "type": "id"}, 
