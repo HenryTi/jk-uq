@@ -28,19 +28,21 @@ IDX Talling (
     id,
 );
 
-/* 查询库房待截单数据(首页加载时查询库房任务) */
-QUERY GetWarehouseReadyCutOffCount(
+/* 查询根据库房、截单类型分组的待截单数量 */
+QUERY GetReadyCutOffCount(
 )
 RETURNS ret (
 	warehouse ID,
-	id ID
+	cutofftype ID,
+	readyCutOffCount int
 ) {
-    INTO ret SELECT b.warehouse, b.id
+    INTO ret SELECT warehouse, cutofftype, COUNT(a.id) as readyCutOffCount
     FROM IxPendingRequest as a
         JOIN RequestDetail as b ON a.id = b.id
         JOIN Request as d ON b.main = d.id
         JOIN IxUserWarehouse as c on c.xi = b.warehouse
-	where c.ix = $user;
+	where c.ix = $user
+	GROUP BY b.warehouse, b.cutofftype;
 };
 
 /* 查询库房、截单类型待截单数据列表 */
@@ -76,9 +78,10 @@ QUERY GetCutOffMainList(
 PAGE (
 	id bigint start 0,
 	no CHAR(20),
-	cutter bigint
+	cutter bigint,
+	create TIMESTAMP,
 ) {
-	page SELECT a.id, a.no, a.cutter
+	page SELECT a.id, a.no, a.cutter, a.[$create] as create
     FROM CutOffMain AS a
     WHERE a.warehouse=warehouse AND a.cutter=$user and a.id > $pageStart
     ORDER BY a.id DESC
