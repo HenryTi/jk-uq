@@ -125,7 +125,7 @@ RETURNS detail (
 	deliverMain ID,
 	item ID,
 	deliverShould DEC(12,2),
-	pickDone DEC(12,2),
+	deliverDone DEC(12,2),
 	returnDone DEC(12,2)
 ) {
 	INTO main SELECT a.id, 
@@ -137,7 +137,7 @@ RETURNS detail (
 
 	INTO detail SELECT a.id, a.biz as orderDetail,
 		a.main as deliverMain,			-- DeliverMain id
-		a.item, a.quantity as deliverShould, b.pickDone, b.returnDone
+		a.item, a.quantity as deliverShould, b.deliverDone, b.returnDone
 		FROM DeliverDetail as a
 			LEFT JOIN DxDeliverDetail as b ON b.id = a.id
 		WHERE a.main = deliver;
