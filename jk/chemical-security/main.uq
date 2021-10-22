@@ -10,35 +10,44 @@ OPEN TUID JNKRestrict (
 ID Statute (
     id,
     name    char(100),
-);
-
--- 是ID还是设置成Chemical的IDX？
-ID ChemicalControlled (
-    id,
-    chemical ID Chemical,
-    -- 其他特征？
+    description char(100),
+    organization char(100),
+    createDate datetime,
 );
 
 -- 危险性类别(各种法规的多个分类统一吗？子分类怎么表达？)
 ID HazardClass (
     id,
     statute ID Statute,     -- 
-    no  char(10),
+    code  char(10),
     description char(100),
-    unique(no),
+    INDEX idx_code(code),
+);
+
+-- 法规中规定的产品信息及其危险类别
+ID StatuteChemical (
+    id,
+    statute ID Statute,
+    hazardClass ID HazardClass,
+    standardName    char(1000),
+    cas char(20),
+    json text,      -- 法规中列明的其他信息，如别名，纯度等其他信息，格式如：{alias: [], purity: ""}
+    createDate  datetime,
 );
 
 -- 危险化学品的危险性类别
-IX ChemicalControlledHazardClass (
-    ix,     -- ChemicalControlled
-    xi,     -- HazardClass
+IX ChemicalControlled (
+    ixx,    -- Chemical
+    ix,     -- StatuteChemical
+    xi,     -- 危险类别
+    -- 其他特征：这个其他特征包括，量/纯度或浓度等，（1）数量不定；（2）可能还有做特征对比，如何表示？
 );
 
 -- 业务环节（使用环节）
 ID buziPhase (
     id,
     name char(10),  -- 生产(或开发) / 经营(销售) / 采购 / 存储 / 运输 / 寄递 / 进口 / 出口 / 废弃 等
-    unique(name),
+    INDEX idx_name(name),
 );
 
 -- 法规规定的许可证
@@ -57,7 +66,7 @@ IX buziPhaseLicense (
 ID Strategy (
     id,
     name    char(10),   -- 禁止 / 条件允许 / 允许
-    unique(name);
+    INDEX idx_name(name)
 );
 
 ---------------------------------------------------------------------------------------------------------------------------
