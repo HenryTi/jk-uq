@@ -91,6 +91,8 @@ RETURNS ret (
 	warehouse ID,
 	deliverMain ID,
 	no CHAR(20),
+	cutOffMain CHAR(20),
+	traynumber int,
 	customerAccount ID,
 	create TIMESTAMP,
 	rows SMALLINT,
@@ -98,12 +100,13 @@ RETURNS ret (
 	staff ID,
 ) {
 	INTO ret SELECT b.warehouse
-		, b.id as deliverMain, b.no
+		, b.id as deliverMain, b.no, e.no as cutOffMain, b.traynumber
 		, b.customerAccount, b.[$create] as create, d.rows, d.pickRows, d.staff
 		FROM IxUserWarehouse as a
 			JOIN DeliverMain as b ON a.xi=b.warehouse
 			JOIN DxDelivering as c on c.id=b.id
 			LEFT JOIN DxDeliverMain as d ON b.id=d.id
+			LEFT JOIN CutOffMain AS e ON e.id=b.cutoffmain
 		WHERE a.ix=$user;
 };
 
