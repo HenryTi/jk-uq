@@ -156,6 +156,7 @@ ACT Picking (
 ) {
 	WITH DxPicking ID=pickup;
 	WITH Pickup ID=pickup SET picker=$user, startTime=$date, finishTime=null;
+	TUID [$User] ID ($user) SET poke=1;
 };
 
 QUERY WarehousePickups(
@@ -237,6 +238,7 @@ ACT Picked (
 		-- 拣货完成
 		BUS JkDeliverBus.[pickup-done] into detail ADD id = pickupDetail, biz = biz, value = quantity;
 	}
+	TUID [$User] ID ($user) SET poke=1;
 };
 
 

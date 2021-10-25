@@ -64,6 +64,7 @@ ACT Delivering (
 ) {
 	-- 发现问题，startTime或者finishTime任意修改其中一项，结果两个都会变。。
 	WITH DxDeliverMain ID=deliver SET staff=$user, startTime=$date, finishTime=null;
+	TUID [$User] ID ($user) SET poke=1;
 };
 
 ACT Delivered(
@@ -81,6 +82,7 @@ ACT Delivered(
 		WITH DxDeliverDetail as a ID = deliverDetail SET a.deliverDone = quantity;
     	BUS JkDeliverBus.[deliver-done] into detail ADD id = deliverDetail, biz = orderDetail, value = quantity; 
 	}
+	TUID [$User] ID ($user) SET poke=1;
 };
 
 QUERY WarehouseDeliverMain (

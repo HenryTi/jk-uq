@@ -365,6 +365,7 @@ ACT Tallying (
 	cutOffMain ID,
 ) {
 	WITH DxCutOffMain ID=cutOffMain SET staff=$user, startTime=$date, finishTime=null;
+	TUID [$User] ID ($user) SET poke=1;
 };
 
 /* 单个理货完成 */
@@ -386,6 +387,7 @@ ACT TallyDone (
 	WITH DxCutOffMain ID=cutOffMain SET finishTime=$date;
 	-- WITH CutOffProcessing ix=cutOffMain DEL;	-- ixx=warehouse xi=cutOffMain ix=cutOffType
 	WITH Talling id = cutOffMain DEL;
+	TUID [$User] ID ($user) SET poke=1;
 };
 
 /* 修改发货单中承运商 */
