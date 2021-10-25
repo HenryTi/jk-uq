@@ -28,6 +28,7 @@ IX IxCouponUsed (
     ixx,    -- coupon
     ix,     -- couponUser customer
     xi,     -- order
+    usedDate    datetime
 );
 
 -- 添加优惠码
@@ -44,7 +45,7 @@ ACTION CreateCoupon(
  
     var couponId ID;
     set couponId = ID(Coupon new, code);
-    WITH Coupon as a ID couponId set a.type = type, a.validityDate = validityDate, a.creator = $user; 
+    WITH Coupon as a ID couponId set a.type = type, a.validityDate = validityDate, a.creator = $user, a.createDate = now(); 
 
     into ret select couponId as coupon, code;
 };
@@ -123,4 +124,18 @@ PAGE (
             and m.type = type 
     order by m.createDate desc
     limit $pageSize;
+};
+
+/** 搜索优惠券使用历史 */
+QUERY GetCouponUsedHistory( 
+    coupon ID Coupon
+)
+returns ret (
+    coupon ID,
+    customer ID,
+    usedDate datetime
+) {
+    into ret  select  a.ix as coupon, a.xi as customer, a.usedDate 
+    from    IxCouponUsed as a
+    where   a.ix = coupon;
 };

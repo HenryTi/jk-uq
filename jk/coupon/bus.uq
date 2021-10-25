@@ -17,7 +17,7 @@ bus cBus from 百灵威系统工程部/coupon
                 set currentBound = couponSender, boundType = EnumBoundType.coupon;
             }
 
-            WITH IxCouponUsed ixx = coupon ix = couponUser xi = id;
+            WITH IxCouponUsed ixx = coupon ix = couponUser xi = id set usedDate = now();
         }
         if(not currentBound is null){
             WITH CustomerBound ix = couponUser xi = currentBound 
