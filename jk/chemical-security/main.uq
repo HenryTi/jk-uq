@@ -18,7 +18,7 @@ ID Statute (
 -- 危险性类别(各种法规的多个分类统一吗？子分类怎么表达？)
 ID HazardClass (
     id,
-    statute ID Statute,     -- 
+    main ID Statute,     -- 
     code  char(10),
     description char(100),
     INDEX idx_code(code),
@@ -27,7 +27,7 @@ ID HazardClass (
 -- 法规中规定的产品信息及其危险类别
 ID StatuteChemical (
     id,
-    statute ID Statute,
+    main ID Statute,
     hazardClass ID HazardClass,
     standardName    char(1000),
     cas char(20),
@@ -53,7 +53,7 @@ ID buziPhase (
 -- 法规规定的许可证
 ID license (
     id,
-    statute ID Statute,     -- 
+    main ID Statute,     -- 
     name   char(100),
 );
 
