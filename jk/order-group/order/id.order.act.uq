@@ -82,7 +82,7 @@ RETURNS ret (
     		, shippingContact=shippingContact;
 		BUS JkOrderBus.order SET id=mainId, no=orderNo, customerAccount=customer;
 		-- BUS JkOrderBus.[deliver-ext] SET id=mainId;
-		BUS JkOrderBus.deliver SET id=mainId, contact=shippingContact;
+		-- BUS JkOrderBus.deliver SET id=mainId, contact=shippingContact;
 		FOR detail {
 			VAR detailId ID;
 			SET detailId=ID(OrderDetail new);
@@ -100,8 +100,8 @@ RETURNS ret (
 					, price = price;
 			-- BUS JkOrderBus.[deliver-ext] INTO detail 
 			--	ADD id = detailId, needInsuredWhenDelivery = 0;
-			BUS JkOrderBus.deliver INTO detail 
-				ADD id = detailId, warehouse = warehouse;
+			-- BUS JkOrderBus.deliver INTO detail 
+			--	ADD id = detailId, warehouse = warehouse;
 		}
 	}
 	INTO ret SELECT mainId as id;
