@@ -78,9 +78,16 @@ ACT Delivered(
 	WITH DxDelivering ID=deliver DEL;
 	WITH DxDeliverMain ID=deliver SET finishTime=$date;
 	BUS JkDeliverBus.[deliver-done] set id = deliver;
+	BUS JkDeliverBus.[deliver-done2] set id = deliver;	-- 补充快递单号信息
+	VAR carrier ID, waybillNumber varchar(50);
+	SET carrier = a.carrier, waybillNumber = a.waybillNumber
+		FROM DxDeliverMain as a
+		WHERE a.id = deliver;
 	FOR detail {
 		WITH DxDeliverDetail as a ID = deliverDetail SET a.deliverDone = quantity;
-    	BUS JkDeliverBus.[deliver-done] into detail ADD id = deliverDetail, biz = orderDetail, value = quantity; 
+    	BUS JkDeliverBus.[deliver-done] into detail ADD id = deliverDetail, biz = orderDetail, value = quantity;
+		BUS JkDeliverBus.[deliver-done2] into detail 
+		ADD id = deliverDetail, biz = orderDetail, value = quantity, waybillNumber = waybillNumber, carrier = carrier, createDate = $date;
 	}
 	TUID [$User] ID ($user) SET poke=1;
 };

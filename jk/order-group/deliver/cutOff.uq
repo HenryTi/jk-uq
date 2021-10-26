@@ -405,5 +405,5 @@ ACT UpdateWaybillNumber(
 	waybillNumber varchar(50)
 ){
 	WITH DxDeliverMain as a ID = deliverMain 
-		SET a.carrier = carrier, a.waybillNumber = waybillNumber, a.deliverTime = $date;
+		SET a.carrier = carrier, a.waybillNumber = waybillNumber;
 };
