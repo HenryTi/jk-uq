@@ -7,7 +7,7 @@ ID CutOffType(
 );
 
 /*
- * DeliverType共3种：1.销售发货；2.调库发货；3.质检发货
+ * DeliverType共3种：1.销售发货(包括：一般客户；河北生产用；河北之间用；苏州生产用）；2.调库发货；3.盘亏出库；4.报废出库
 */
 ID DeliverType (
     id,
@@ -18,24 +18,24 @@ ID DeliverType (
 -- 如：销售发货给A客户群的，截单类型为1；销售发货给B客户群的，截单类型为2，销售发货给其他客户的，截单类型为3等；
 -- 报废出库 等不须发货的，不在此处处理（deliver bus不应发送这些发货要求）
 IX IxCutoffTypeDefinition (
-    ixx,    -- BizType
+    ixx,    -- DeliverType
     ix,     -- CustomerId
     xi,     -- CutOffType
 );
 
-/*
+
 -- 查询截单类型列表
 QUERY GetCutOffTypeList(
 )RETURNS list (
 	cutOffType ID,
-	no char(50),
-	customer ID,
-	tradetype char(10)
+	name char(50)
 ) {
-	INTO list SELECT a.id as cutOffType, a.no, a.customer, a.tradetype
+	INTO list SELECT a.id as cutOffType, a.name
 		FROM CutOffType as a
-		order by a.[$create] DESC;
+		order by a.id;
 };
+
+/*
 
 -- 查询截单类型详情
 QUERY GetCutOffType(

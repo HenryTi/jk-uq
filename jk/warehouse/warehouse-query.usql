@@ -236,3 +236,14 @@ returns list(
     from    OutInBoundReason as a
     where   a.no like 'B%';
 };
+
+/* 查询产品编号（使用lot查询） */
+Query SearchProductByLot(
+    lotNumber char(50)
+)returns list(
+    product ID
+){
+    Into list select a.product
+    from ShelfBlockLotInventory as a
+    where a.lotNumber = lotNumber;
+};

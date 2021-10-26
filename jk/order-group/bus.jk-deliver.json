@@ -15,6 +15,7 @@
         "quantity: number  -- 同一个合同明细可能会分多次不同数量发送",
         "warehouse: id",
         "lotNumber: string",
+        "stradeType: string    -- 销售贸易类型，deliver根据此内容区分deliverType，进一步区分截单类型，此字段应该在调库/报废等不走订单流程后删除",
         "showPrice: number                  -- 单据上是否显示价格, 需要则1",
         "json: string                       -- 只需要在界面展示的信息以json格式存储"
     ],
