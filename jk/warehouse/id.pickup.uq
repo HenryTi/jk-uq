@@ -147,6 +147,9 @@ ACT AutoPick (
         WITH PickupDetail as a ID=pickupDetail
             SET a.main=pickup, a.biz = biz, a.item = item
             , a.shelfBlock = shelfBlock, a.quantity = quantity, a.lotNumber = lotNumber, a.json = json;
+		FOR (VAR user ID OF SELECT ix as user FROM IxUserWarehouse WHERE xi=aWarehouse) {
+            TUID [$User] ID (user) SET poke=1;
+        }
     }
 };
 
@@ -156,6 +159,7 @@ ACT Picking (
 ) {
 	WITH DxPicking ID=pickup;
 	WITH Pickup ID=pickup SET picker=$user, startTime=$date, finishTime=null;
+	TUID [$User] ID ($user) SET poke=1;
 };
 
 QUERY WarehousePickups(
@@ -237,6 +241,7 @@ ACT Picked (
 		-- 拣货完成
 		BUS JkDeliverBus.[pickup-done] into detail ADD id = pickupDetail, biz = biz, value = quantity;
 	}
+	TUID [$User] ID ($user) SET poke=1;
 };
 
 
