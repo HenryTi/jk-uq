@@ -20,8 +20,24 @@ BUS JkDeliverBus ver 0.9 from 百灵威系统工程部/[jk-deliver]
     -- 还需要一个 截单 bus，用来通知warehouse，该截单中的出库记录可以形成拣货单了（拣货单中要有对应的deliverDetail，需要从上面的pending中获取）
     ACCEPT pickup {
         FOR detail {
-            WITH IxPendingOutBound ixx = warehouse ix = cutOffMain xi = biz 
-            set biz2 = biz2, item = item, quantity = quantity, lotNumber = lotNumber, json = json;
+            -- 接受bus时候判断 IxPendingOutBoundResult 是否存在完整的货架出库信息。
+            VAR shelfBlock ID, quantitya int, itema ID, lotNumbera char(50);
+            SET shelfBlock = NULL;
+            SET shelfBlock = a.ix, quantitya = a.xi, itema = a.item, lotNumbera = a.lotNumber
+                FROM IxPendingOutBoundResult as a
+                WHERE a.ixx = biz2 AND a.xi <= quantity
+                LIMIT 1;
+                
+            -- 如果完整直接生成拣货单，如果不完整则把数据写入IxPendingOutBound表，等待接受shelfInOutBoundHistory BUS时候执行生成拣货单；
+            IF(NOT shelfBlock IS NULL) {
+                WITH IxPendingPickup ixx = warehouse ix = cutOffMain xi = biz
+                set item = itema, shelfBlock = shelfBlock, quantity = quantitya, lotNumber = lotNumbera, json = json;
+                WITH IxPendingOutBoundResult ixx = biz2 ix = shelfBlock xi = quantitya DEL;
+                SCHEDULE AutoPick(warehouse,cutOffMain) DELAY 2; -- 2分钟以后执行一次
+            } ELSE {
+                WITH IxPendingOutBound ixx = warehouse ix = cutOffMain xi = biz
+                set biz2 = biz2, item = item, quantity = quantity, lotNumber = lotNumber, json = json;
+            }
         }
         -- SCHEDULE AutoOutBound DELAY 2; -- 2分钟以后执行一次
     };
@@ -42,18 +58,23 @@ BUS warehouseBus from [百灵威系统工程部]/warehouse
         history ShelfInOutBoundHistory set shelfBlock = shelfBlock, product = product, pack = pack,
                 inOutType = inOutType, quantity = quantity, inOutBoundTime = inOutBoundTime;
         if(inOutType = 0) {
+
+            -- 接受bus时候判断：从IxPendingOutBound是否能查询到（包含cutOffMain、warehouse）完整的数据信息。
             VAR cutOffMain ID, deliverDetail ID, warehouse ID;
             SET cutOffMain = NULL;
             SET cutOffMain = a.ix, deliverDetail = a.xi, warehouse = a.ixx
                 FROM IxPendingOutBound as a
                 WHERE a.biz2 = biz2 AND a.quantity >= quantity
                 LIMIT 1;
-    
+
+            -- 如果完整直接生成拣货单，如果不完整则把数据写入IxPendingOutBoundResult表，等待接受pickup BUS时候执行生成拣货单；
             IF(NOT cutOffMain IS NULL) {
                 WITH IxPendingPickup ixx = warehouse ix = cutOffMain xi = deliverDetail
                 set item = pack, shelfBlock = shelfBlock, quantity = quantity, lotNumber = lotNumber, json = json;
                 -- 是否在此删除 IxPendingOutBound 待出库数据？
                 SCHEDULE AutoPick(warehouse,cutOffMain) DELAY 2; -- 2分钟以后执行一次
+            } ELSE{
+                WITH IxPendingOutBoundResult ixx = biz2 ix = shelfBlock xi = quantity set item = pack, lotnumber = lotnumber;
             }
         }
     }

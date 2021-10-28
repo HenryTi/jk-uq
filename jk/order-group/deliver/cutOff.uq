@@ -28,26 +28,60 @@ IDX Talling (
     id,
 );
 
-/* 查询库房待截单数据 */
+/* 查询根据库房待截单数量 */
+QUERY GetReadyCutOffCount(
+)
+RETURNS ret (
+	warehouse ID,
+	readyCutOffCount int
+) {
+    INTO ret SELECT warehouse, COUNT(a.id) as readyCutOffCount
+    FROM IxPendingRequest as a
+        JOIN RequestDetail as b ON a.id = b.id
+        JOIN IxUserWarehouse as c on c.xi = b.warehouse
+	where c.ix = $user
+	GROUP BY b.warehouse;
+};
+
+/* 查询根据库房、截单类型分组的待截单数量 */
+QUERY GetCutOffTypeCount(
+	warehouseId ID,
+	cutofftypeId ID
+)
+RETURNS ret (
+	warehouse ID,
+	cutofftype ID,
+	readyCutOffCount int
+) {
+    INTO ret SELECT warehouse, cutofftype, COUNT(a.id) as readyCutOffCount
+    FROM IxPendingRequest as a
+         JOIN RequestDetail as b ON a.id = b.id
+	WHERE b.warehouse = warehouseId and b.cutOffType = cutofftypeId
+	GROUP BY b.warehouse, b.cutofftype;
+};
+
+/* 查询库房、截单类型待截单数据列表 */
 QUERY GetReadyCutOffList(
     warehouse ID,
     cutOffType ID,
 )
-RETURNS list (
+PAGE(
+	id bigint desc,
     orderDetail ID,
 	item ID,
 	shouldQuantity DEC(12,2),
     customerAccount ID
 ) {
-    INTO list SELECT b.biz as orderDetail,
+    page SELECT a.id, b.biz as orderDetail,
         b.item, b.quantity as shouldQuantity,
         d.customerAccount
     FROM IxPendingRequest as a
         JOIN RequestDetail as b ON a.id = b.id
         JOIN Request as d ON b.main = d.id
         JOIN IxUserWarehouse as c on c.ix = $user AND c.xi = b.warehouse
-    WHERE b.warehouse = warehouse and b.cutOffType = cutOffType
-    ORDER BY b.warehouse, b.cutOffType, d.contact, b.biz;
+    WHERE b.warehouse = warehouse and b.cutOffType = cutOffType and a.id < $pageStart
+    ORDER BY a.id desc
+	limit $pageSize;
 };
 
 /* 
@@ -57,18 +91,19 @@ QUERY GetCutOffMainList(
 	warehouse ID
 )
 PAGE (
-	id bigint start 0,
+	id bigint desc,
 	no CHAR(20),
-	cutter bigint
+	cutter bigint,
+	create TIMESTAMP,
 ) {
-	page SELECT a.id, a.no, a.cutter
+	page SELECT a.id, a.no, a.cutter, a.[$create] as create
     FROM CutOffMain AS a
-    WHERE a.warehouse=warehouse AND a.cutter=$user and a.id > $pageStart
-    ORDER BY a.id DESC
+    WHERE a.warehouse=warehouse AND a.cutter=$user and a.id < $pageStart
+    ORDER BY a.id desc
 	limit $pageSize;
 };
 
-/* 截单操作 */
+/* 全部截单操作 */
 ACT CutOff(
     aWarehouse ID,
     cutOffType ID,
@@ -113,7 +148,7 @@ RETURNS main (
             JOIN RequestDetail as b ON b.id = a.id
             JOIN Request as c ON c.id = b.main
         WHERE b.warehouse = aWarehouse and b.cutOffType = cutOffType
-        ORDER BY b.warehouse, b.cutOffType, c.contact, b.biz
+        ORDER BY b.warehouse, b.cutOffType, c.contact, a.id
         LIMIT 1;
 
 		IF warehouse IS NULL {
@@ -151,10 +186,110 @@ RETURNS main (
             
         -- 从任务表中删除已获取到的当前数据
 		DELETE a FROM IxPendingRequest as a WHERE a.id = requestDetail;
+		
+		-- 待截单任务太多（目前同步了一个月内数据有13000多，正常处理不会积攒这么多），增加最大托盘50，超过则跳出此次截单;
+		IF (trayNumber > 50) {
+			BREAK;
+		}
 	}
 	LOG 'CutOff' SUBJECT 'end';
 	WITH Talling as a id = cutOffMain;
     INTO main SELECT cutOffMain as id, cutOffMainNo as no;
+	FOR (VAR user ID OF SELECT ix as user FROM IxUserWarehouse WHERE xi=aWarehouse) {
+            TUID [$User] ID (user) SET poke=1;
+        }
+};
+
+/* 选择截单操作(选择部分条目截单) */
+ACT CutOffSelected(
+    aWarehouse ID,
+    cutOffType ID,
+	ARR detail (
+		aRequestDetail ID
+	)
+)
+RETURNS main (
+	id ID,
+	no CHAR(20),			-- 截单号
+) {
+    -- 1、操作权限检查
+    IF NOT exists(SELECT ix FROM IxUserWarehouse WHERE ix=$user AND xi = aWarehouse) {
+        RETURN;
+    }
+
+    -- 2、定义变量生成截单号
+    if not exists (select 1 from IxPendingRequest as a join RequestDetail as b on a.id = b.id
+    where b.warehouse = aWarehouse and b.cutOffType = cutOffType) {
+        RETURN; 
+    }
+
+    VAR cutOffMain ID, cutOffMainNo CHAR(20);	
+	SET cutOffMainNo = NO(CutOffMain);
+	SET cutOffMain = ID(CutOffMain new, cutOffMainNo);
+	WITH CutOffMain as a ID = cutOffMain SET a.no = cutOffMainNo, a.warehouse = aWarehouse, a.cutter = $user;
+	BUS JkDeliverBus.pickup SET cutOffMain = cutOffMain, warehouse = aWarehouse;
+
+    -- 3、生成发运单、临时理货号, 并删除已截单的数据
+    LOG 'CutOff' SUBJECT 'start';
+	TABLE tblCutOff(key warehouse ID, key customerAccount ID, key contact ID, deliver ID);
+	VAR trayNumber int = 1;
+
+	FOR detail {
+		-- 循环获取 limit1数据
+		VAR requestDetail ID, warehouse ID, customerAccount ID, contact ID, biz ID, item ID, quantity dec(18, 4)
+            , showPrice tinyint, json text, lotNumber char(50);
+		SET warehouse = NULL;
+
+		SET requestDetail = a.id, warehouse = b.warehouse, customerAccount = c.customerAccount, contact = c.contact
+            , biz = b.biz, item = b.item, quantity = b.quantity, lotNumber = b.lotnumber
+			, showPrice = b.showPrice, json = b.json
+        FROM IxPendingRequest as a
+            JOIN RequestDetail as b ON b.id = a.id
+            JOIN Request as c ON c.id = b.main
+        WHERE b.warehouse = aWarehouse and b.cutOffType = cutOffType and a.id = aRequestDetail;
+
+		IF warehouse IS NULL {
+			BREAK;
+		}
+
+		-- 从临时表中查询是否存在，不存在则生成新发运单和临时理货号
+		VAR deliverMainId ID;
+		SET deliverMainId = NULL;
+		SET deliverMainId = a.deliver FROM tblCutOff as a 
+        WHERE a.warehouse = warehouse AND a.customerAccount = customerAccount AND a.contact = contact;
+		
+		IF deliverMainId IS NULL {
+			SET deliverMainId = ID(DeliverMain new, NO(DeliverMain));
+			WITH DeliverMain as a ID = deliverMainId
+                SET a.customerAccount = customerAccount, a.contact = contact, a.warehouse = warehouse
+                , a.cutOffMain = cutOffMain, a.trayNumber = trayNumber;
+
+			INTO tblCutOff SELECT warehouse, customerAccount, contact, deliverMainId as deliver;
+			SET trayNumber = trayNumber + 1;
+		}
+
+		VAR deliverDetailId ID = ID(DeliverDetail new);
+		WITH DeliverDetail as a ID = deliverDetailId SET a.main = deliverMainId, a.biz = biz
+            , a.item = item, a.quantity = quantity, a.lotNumber = lotNumber, a.showPrice = showPrice, a.json = json;
+
+		WITH DxDeliverDetail as a ID = deliverDetailId;
+		WITH DxDelivering as a ID = deliverMainId;
+		WITH DxDeliverMain as a ID = deliverMainId SET a.rows = a.rows + 1;
+
+		-- biz是发运上游（订单明细/exchangeDetail）的id，
+		-- biz2是（订单明细/exchangeDetail）的id，因为目前出库在老系统中而截单在新系统，需要暂时存储到biz2中；此字段日后要去掉；
+		BUS JkDeliverBus.pickup INTO detail
+			ADD biz = deliverDetailId, biz2 = biz, item = item, quantity = quantity, lotNumber = lotNumber, json = json;
+            
+        -- 从任务表中删除已获取到的当前数据
+		DELETE a FROM IxPendingRequest as a WHERE a.id = requestDetail;
+	}
+	LOG 'CutOff' SUBJECT 'end';
+	WITH Talling as a id = cutOffMain;
+    INTO main SELECT cutOffMain as id, cutOffMainNo as no;
+	FOR (VAR user ID OF SELECT ix as user FROM IxUserWarehouse WHERE xi=aWarehouse) {
+            TUID [$User] ID (user) SET poke=1;
+        }
 };
 
 /*
@@ -230,6 +365,7 @@ ACT Tallying (
 	cutOffMain ID,
 ) {
 	WITH DxCutOffMain ID=cutOffMain SET staff=$user, startTime=$date, finishTime=null;
+	TUID [$User] ID ($user) SET poke=1;
 };
 
 /* 单个理货完成 */
@@ -251,6 +387,7 @@ ACT TallyDone (
 	WITH DxCutOffMain ID=cutOffMain SET finishTime=$date;
 	-- WITH CutOffProcessing ix=cutOffMain DEL;	-- ixx=warehouse xi=cutOffMain ix=cutOffType
 	WITH Talling id = cutOffMain DEL;
+	TUID [$User] ID ($user) SET poke=1;
 };
 
 /* 修改发货单中承运商 */
@@ -268,5 +405,5 @@ ACT UpdateWaybillNumber(
 	waybillNumber varchar(50)
 ){
 	WITH DxDeliverMain as a ID = deliverMain 
-		SET a.carrier = carrier, a.waybillNumber = waybillNumber, a.deliverTime = $date;
+		SET a.carrier = carrier, a.waybillNumber = waybillNumber;
 };

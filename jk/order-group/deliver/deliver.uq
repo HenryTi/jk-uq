@@ -65,6 +65,7 @@ ACT Delivering (
 ) {
 	-- 发现问题，startTime或者finishTime任意修改其中一项，结果两个都会变。。
 	WITH DxDeliverMain ID=deliver SET staff=$user, startTime=$date, finishTime=null;
+	TUID [$User] ID ($user) SET poke=1;
 };
 
 ACT Delivered(
@@ -77,12 +78,19 @@ ACT Delivered(
 ){
 	WITH DxDelivering ID=deliver DEL;
 	WITH DxDeliverMain ID=deliver SET finishTime=$date;
+	BUS JkDeliverBus.[deliver-done] set id = deliver;
+	BUS JkDeliverBus.[deliver-done2] set id = deliver;	-- 补充快递单号信息
+	VAR carrier ID, waybillNumber varchar(50);
+	SET carrier = a.carrier, waybillNumber = a.waybillNumber
+		FROM DxDeliverMain as a
+		WHERE a.id = deliver;
 	FOR detail {
 		WITH DxDeliverDetail as a ID = deliverDetail SET a.deliverDone = quantity;
-		-- Bus暂时未发，修改订单状态; 是否需要deliveryConfirm？
-		-- BUS JkOrderBus.[deliver-done] INTO detail
-        --    ADD id=deliverDetailId, orderDetail=orderDetail, value=quantity;
+    	BUS JkDeliverBus.[deliver-done] into detail ADD id = deliverDetail, biz = orderDetail, value = quantity;
+		BUS JkDeliverBus.[deliver-done2] into detail 
+		ADD id = deliverDetail, biz = orderDetail, value = quantity, waybillNumber = waybillNumber, carrier = carrier, createDate = $date;
 	}
+	TUID [$User] ID ($user) SET poke=1;
 };
 
 QUERY WarehouseDeliverMain (
@@ -91,6 +99,8 @@ RETURNS ret (
 	warehouse ID,
 	deliverMain ID,
 	no CHAR(20),
+	cutOffMain CHAR(20),
+	traynumber int,
 	customerAccount ID,
 	create TIMESTAMP,
 	rows SMALLINT,
@@ -98,12 +108,13 @@ RETURNS ret (
 	staff ID,
 ) {
 	INTO ret SELECT b.warehouse
-		, b.id as deliverMain, b.no
+		, b.id as deliverMain, b.no, e.no as cutOffMain, b.traynumber
 		, b.customerAccount, b.[$create] as create, d.rows, d.pickRows, d.staff
 		FROM IxUserWarehouse as a
 			JOIN DeliverMain as b ON a.xi=b.warehouse
 			JOIN DxDelivering as c on c.id=b.id
 			LEFT JOIN DxDeliverMain as d ON b.id=d.id
+			LEFT JOIN CutOffMain AS e ON e.id=b.cutoffmain
 		WHERE a.ix=$user;
 };
 
@@ -127,8 +138,9 @@ RETURNS detail (
 	deliverMain ID,
 	item ID,
 	deliverShould DEC(12,2),
-	pickDone DEC(12,2),
-	returnDone DEC(12,2)
+	deliverDone DEC(12,2),
+	returnDone DEC(12,2),
+	content text
 ) {
 	INTO main SELECT a.id, 
 		a.no, a.customerAccount, a.contact, a.warehouse,
@@ -139,7 +151,7 @@ RETURNS detail (
 
 	INTO detail SELECT a.id, a.biz as orderDetail,
 		a.main as deliverMain,			-- DeliverMain id
-		a.item, a.quantity as deliverShould, b.pickDone, b.returnDone
+		a.item, a.quantity as deliverShould, b.deliverDone, b.returnDone, a.json as content
 		FROM DeliverDetail as a
 			LEFT JOIN DxDeliverDetail as b ON b.id = a.id
 		WHERE a.main = deliver;
