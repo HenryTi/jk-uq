@@ -42,6 +42,10 @@ ACTION CreateCoupon(
     var code varchar(20);
     set code = (RAND() * 100000000) + 100000000;
     set code = substr(code, 1, 8);
+    if exists(select 1 from Coupon as t where t.code = code) {
+        set code = (RAND() * 100000000) + 100000000;
+        set code = substr(code, 1, 8);
+    }
  
     var couponId ID;
     set couponId = ID(Coupon new, code);
