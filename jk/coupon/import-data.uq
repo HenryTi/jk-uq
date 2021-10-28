@@ -1,17 +1,17 @@
 ACT AcceptCustomerBounded(customer ID, salesman ID) {
     VAR currentBound ID, boundDate date, boundDays smallint, boundType ENUM EnumBoundType;
-    SET currentBound = t.xi, boundDate = t.boundDate, boundDays = t.boundDays, boundType = t.boundType
-    from CustomerBound as t where t.ix = customer;
+    SET currentBound = t.ix, boundDate = t.boundDate, boundDays = t.boundDays, boundType = t.xi
+    from CustomerBound as t where t.ixx = customer;
 
     if(currentBound is null){
-        WITH CustomerBound ix = customer xi = salesman 
-            set boundDate = date(now()), boundDays = 90, boundType = EnumBoundType.assign; 
+        WITH CustomerBound ixx = customer ix = salesman xi = EnumBoundType.assign
+            set boundDate = date(now()), boundDays = 90; 
         HISTORY CustomerBoundHistory 
             set customer = customer, boundTo = salesman, boundType = EnumBoundType.assign, operation = 1;
     }else{
         if(currentBound <> salesman and boundType = EnumBoundType.assign){
-            WITH CustomerBound ix = customer xi = salesman 
-                set boundDate = date(now()), boundDays = boundDays, boundType = EnumBoundType.assign; 
+            WITH CustomerBound ixx = customer ix = salesman xi = EnumBoundType.assign
+                set boundDate = date(now()), boundDays = boundDays; 
             HISTORY CustomerBoundHistory 
                 set customer = customer, boundTo = currentBound, boundType = EnumBoundType.assign, operation = 0;
             HISTORY CustomerBoundHistory 
