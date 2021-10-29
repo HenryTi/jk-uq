@@ -6,7 +6,9 @@ bus cBus from 百灵威系统工程部/coupon
             WITH IxCouponUsed ixx = coupon ix = couponUser xi = id set usedDate = now();
 
             VAR couponSender ID;
-            SET couponSender = t.creator from Coupon as t where t.id = coupon;
+            SET couponSender = b.xi 
+            from Coupon as t join IxWebuserEmployeeCopy as b on t.creator = b.ix
+            where t.id = coupon;
 
             TABLE tblBoundType(key boundType smallint);
             INTO tblBoundType select 1 as boundType;

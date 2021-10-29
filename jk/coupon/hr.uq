@@ -1,0 +1,13 @@
+BUS JkHr from 百灵威系统工程部/[jk-hr]
+ACCEPT [webuser-employee] {
+    WITH IxWebuserEmployeeCopy ix = webuser xi = employee;
+}
+ACCEPT [webuser-employee-deleted] {
+    DELETE t FROM IxWebuserEmployeeCopy as t where t.ix = webuser AND t.xi = employee;
+};
+
+-- 员工的employeeId与其webuser关联表副本
+IX IxWebuserEmployeeCopy( 
+    ix, -- WebUser,
+    xi, -- Employee
+);
