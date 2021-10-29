@@ -8,22 +8,26 @@ BUS pointShopBus from [百灵威系统工程部]/pointShop;
 BUS webUserBus from [百灵威系统工程部]/WebUser
     QUERY getCustomerByWebUser {
         var customer id;
-        set customer = w.customer from WebUserCustomer as w where w.WebUser = webUser and w.priority = 1;
+        set customer = w.customer from WebUserCustomer as w where w.WebUser = webUser
+        order by w.priority limit 1;
         into BUS select customer;
     }
     QUERY getCuByWu {
         var customer id;
-        set customer = w.customer from WebUserCustomer as w where w.WebUser = webUser and w.priority = 1;
+        set customer = w.customer from WebUserCustomer as w where w.WebUser = webUser
+        order by w.priority limit 1;
         into BUS select customer;
     }
     QUERY getWebUserByCustomer {
         var webUser ID [$user];
-        set webUser = w.webUser from WebUserCustomer as w where w.customer = customer and w.priority = 1 order by webuser limit 1;
+        set webUser = w.webUser from WebUserCustomer as w where w.customer = customer
+        order by w.priority, w.webuser limit 1;
         into BUS select webUser;
     }
     QUERY getWuByCu {
         var webUser ID [$user];
-        set webUser = w.webUser from WebUserCustomer as w where w.customer = customer and w.priority = 1 order by webuser limit 1;
+        set webUser = w.webUser from WebUserCustomer as w where w.customer = customer
+        order by w.priority, w.webuser limit 1;
         into BUS select webUser;
     };
  
