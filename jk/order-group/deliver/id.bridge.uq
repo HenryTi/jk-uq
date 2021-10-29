@@ -47,6 +47,7 @@ ACCEPT deliveryConfirm {
         WITH DeliverDetailExchangeDetail ix = deliverDetailId xi = orderDetailId; 
     }
 
+    BUS JkDeliverBus.[deliver-done] STAMP deliveryGoodsTime/1000;
     BUS JkDeliverBus.[deliver-done] set id = deliverId;
     BUS JkDeliverBus.[deliver-done] into detail ADD id = deliverDetailId, biz = orderDetailId, value = quantity; 
 };
