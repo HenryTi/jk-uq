@@ -109,7 +109,7 @@ BUS couponBus.getMatchedCredits as q into tb {
     }
 
     if(ifnull(lOrderDetailID, 0) = 0 or ifnull(lCoupon, 0) <> ifnull(creditsId, 0)){
-        bus couponBus.[order-coupon] STAMP from_unixtime(createDate);
+        bus couponBus.[order-coupon] STAMP createDate;
         bus couponBus.[order-coupon] set id = orderMainId, couponUser = endUserId, coupon = creditsId;
         bus couponBus.[order-coupon] into detail add id = orderDetailId;
     }
@@ -117,7 +117,7 @@ BUS couponBus.getMatchedCredits as q into tb {
     if(quantity > 0) {
         -- endUser <> ifnull(lEndUser, 0) or quantity <> ifnull(lQuantity, 0) or price <> ifnull(lPrice, 0)
         -- or mark <> ifnull(lMark, '') or tradeType <> ifnull(lTradeType)) {
-        bus pointOrderBus.orderPointChanged STAMP from_unixtime(createDate); 
+        bus pointOrderBus.orderPointChanged STAMP createDate; 
         bus pointOrderBus.orderPointChanged set orderDetailId = orderDetailId, orderDetailNo = orderItemId
             , orderMainId = orderMainId, orderMainNo = orderId, customer = endUserId
             , brand = brand, product = product, item = pack, quantity = quantity, price = price, retail = retail
@@ -126,7 +126,7 @@ BUS couponBus.getMatchedCredits as q into tb {
     }
 
     if(buyerAccount <> ifnull(lCustomerAccount, 0) or quantity <> ifnull(lQuantity, 0) or price <> ifnull(lPrice, 0)){
-        BUS JkOrderBus.order STAMP from_unixtime(createDate);
+        BUS JkOrderBus.order STAMP createDate;
         BUS JkOrderBus.order SET id=orderMainId, no=orderId, customerAccount = buyerAccount; -- TODO: 缺少Contact
         BUS JkOrderBus.order INTO detail 
             ADD id = orderDetailId
@@ -160,7 +160,7 @@ ACCEPT returnChanged {
     WITH ReturnDetailEx ID = returnDetailId SET returnItemId = returnItemId
         , endUser = endUser
         , mark = mark;
-    BUS JkOrderBus.return STAMP from_unixtime(createDate);
+    BUS JkOrderBus.return STAMP createDate;
     BUS JkOrderBus.return SET id = returnMainId;
     BUS JkOrderBus.return INTO detail 
         ADD id = returnDetailId
