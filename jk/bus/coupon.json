@@ -78,6 +78,7 @@
     ],
     "customer-bounded": [
         "customer: id",
-        "salesman: id"
+        "salesman: id",
+        "boundType: number"
     ]
 }
