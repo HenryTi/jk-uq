@@ -63,10 +63,6 @@
         "cutOffMain: id   -- 截单号",
         "detail: pickup-detail"
     ],
-    "pickup-done": [
-        "deliverDetail: id",
-        "quantity: number"
-    ],
     "receive": [
         "note"
     ],
