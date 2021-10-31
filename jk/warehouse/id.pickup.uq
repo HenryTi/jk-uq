@@ -1,4 +1,4 @@
-ID Pickup (
+ID Pickup GLOBAL (
 	id,
 	KEY no,
 	warehouse ID,
@@ -8,7 +8,7 @@ ID Pickup (
 	sys(create)
 );
 
-ID PickupDetail (
+ID PickupDetail GLOBAL (
 	id,
 	main ID Pickup,			-- Pickup id
 	biz ID,
