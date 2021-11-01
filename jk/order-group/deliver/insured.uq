@@ -1,0 +1,24 @@
+ID InsuredType (
+    id,
+    name    char(10),
+    description    char(50),
+);
+
+IX InsuredTypeBrand (
+    ix,     -- InsuredType
+    xi,     -- brand
+);
+
+-- 定义一个区间表？
+ID InsuredInterval (
+    id,
+    start   dec(12, 2),
+    end   dec(12, 2),
+);
+
+-- 定义有个报价类型和区间的设置表
+IX InsuredTypeInterval (
+    ix,     -- InsuredType
+    xi,     -- InsuredInterval
+    amount  dec(12, 2),     -- 保价金额
+);
