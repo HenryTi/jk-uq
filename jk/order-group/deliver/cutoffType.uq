@@ -7,7 +7,7 @@ ID CutOffType(
 );
 
 /*
- * DeliverType共3种：1.销售发货(包括：一般客户；河北生产用；河北之间用；苏州生产用）；2.调库发货；3.盘亏出库；4.报废出库
+ * DeliverType共4种：1.销售发货(包括：一般客户；河北生产用；河北之间用；苏州生产用）；2.调库发货；3.盘亏出库；4.报废出库
 */
 ID DeliverType (
     id,
@@ -23,8 +23,7 @@ IX IxCutoffTypeDefinition (
     xi,     -- CutOffType
 );
 
-
--- 查询截单类型列表
+/* 查询截单类型列表 */
 QUERY GetCutOffTypeList(
 )RETURNS list (
 	cutOffType ID,
@@ -35,23 +34,28 @@ QUERY GetCutOffTypeList(
 		order by a.id;
 };
 
-/*
-
--- 查询截单类型详情
-QUERY GetCutOffType(
-	cutOffType ID
-) RETURNS ret (
-	id ID,
-	no char(50),
-	customer ID,
-	tradeType char(10),
-	createTime datetime,
-	--owner ID			-- owner报错无法使用？
-)
-{
-	INTO ret SELECT a.id, a.no, a.customer, a.tradeType,
-		a.[$create] as createTime --, a.[$owner] as owner
-		FROM CutOffType as a
-		WHERE a.id = cutOffType;
+/* 查询发货类型列表 */
+QUERY GetDeliverTypeList(
+)RETURNS list (
+	deliverType ID,
+	name char(20),
+	description char(100)
+) {
+	INTO list SELECT a.id AS deliverType, a.name, a.description
+		FROM DeliverType AS a
+		ORDER BY a.id;
 };
-*/
+
+/* 查询接单类型关联的设置信息 */
+QUERY GetCutOffTypeDefinition(
+	cutOffType ID
+)returns list(
+	deliverType ID,
+	deliverTypeName CHAR(20),
+	customerAccount ID
+){
+	INTO list SELECT a.ixx as deliverType, b.name as deliverTypeName, a.ix as customerAccount
+	FROM IxCutoffTypeDefinition AS a
+		LEFT JOIN DeliverType AS b ON b.id=a.ixx
+	WHERE a.xi = cutOffType;
+};
