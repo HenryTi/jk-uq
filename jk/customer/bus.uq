@@ -33,7 +33,10 @@ bus cBus from 百灵威系统工程部/coupon
     ACCEPT creditsUsedByCustomer {
         delete t from CustomerCredits as t where t.customer = customer and t.credits = coupon;
         for orderItems {
-            book CustomerCreditsUsed at(customer, coupon, orderItemId ) set usedDate = now();
+            if not exists(select 1 from CustomerCreditsUsed as t 
+            where t.customer = customer and t.credits = coupon and t.saleOrderItemId = orderItemId) {
+                book CustomerCreditsUsed at(customer, coupon, orderItemId) set usedDate = now();
+            }
         }
     }
     Query getMatchedCredits {
