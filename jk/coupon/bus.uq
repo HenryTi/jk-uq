@@ -80,4 +80,27 @@ bus cBus from 百灵威系统工程部/coupon
             }
         }
         */
+    }
+    -- 接收内部系统客户与销售的对应关系
+    ACCEPT [customer-bounded] {
+        -- 获取tonva系统中客户当前绑定信息
+        VAR currentBound ID, boundDate date, boundDays smallint;
+        SET currentBound = t.ix, boundDate = t.boundDate, boundDays = t.boundDays
+        from CustomerBound as t where t.ixx = customer and t.xi = boundType;
+
+        if(currentBound is null){
+            WITH CustomerBound ixx = customer ix = salesman xi = boundType 
+                set boundDate = date(now()), boundDays = 90; 
+            HISTORY CustomerBoundHistory 
+                set customer = customer, boundTo = salesman, boundType = boundType, operation = 1;
+        }else{
+            if(currentBound <> salesman){
+                WITH CustomerBound ixx = customer ix = salesman xi = boundType 
+                    set boundDate = date(now()), boundDays = boundDays; 
+                HISTORY CustomerBoundHistory 
+                    set customer = customer, boundTo = currentBound, boundType = boundType, operation = 0;
+                HISTORY CustomerBoundHistory 
+                    set customer = customer, boundTo = salesman, boundType = boundType, operation = 1;
+            } 
+        }
     };
