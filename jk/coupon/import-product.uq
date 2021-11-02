@@ -1,3 +1,12 @@
 import JKProduct = 百灵威系统工程部/product;
 
-TUID Brand from JKProduct;
+TUID Brand from JKProduct(
+    id,
+    main name char(50) not null,
+);
+
+OPEN Map BrandSalesRegion (
+    key brand ID Brand,
+    key salesRegion ID,
+    level int not null,
+);

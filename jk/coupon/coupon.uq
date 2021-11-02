@@ -69,12 +69,12 @@ returns ret (
     creator ID [$user]
 ) {
     var result      bigint,     --返回结果
-    id              bigint,     --优惠码id
-    coupon          char(8),    --优惠码
-    type ENUM EnumCouponType,            --优惠码类型
-    validityDate    datetime,   --有效期
-    isValid         smallint,   --是否有效
-    creator ID       [$user];    --优惠码的轻代理
+        id              bigint,     --优惠码id
+        coupon          char(8),    --优惠码
+        type ENUM EnumCouponType,            --优惠码类型
+        validityDate    datetime,   --有效期
+        isValid         smallint,   --是否有效
+        creator ID       [$user];    --优惠码的轻代理
 
     set     id = c.id,
             coupon = c.code,
@@ -90,7 +90,8 @@ returns ret (
 
     var salesmanBounded ID [$user];    --客户的当前轻代理
     set salesmanBounded = c.xi from CustomerBound as c 
-    where c.ix = customer and c.boundDate > dateadd(day, c.boundDays, now()) limit 1; --当前轻代理
+    where c.ixx = customer and c.xi = EnumBoundType.coupon and c.boundDate > dateadd(day, c.boundDays, now()) 
+    limit 1; --当前轻代理
 
     if (coupon is null) {
         set result = 0;  --不存在
@@ -142,4 +143,18 @@ returns ret (
     into ret  select  a.ix as coupon, a.xi as customer, a.usedDate 
     from    IxCouponUsed as a
     where   a.ix = coupon;
+};
+
+
+/** 获取品牌最低折扣设置 */
+QUERY SearchBottomDiscount()
+returns ret (
+    brand ID Brand,
+    discount dec(12, 4) 
+){
+    into ret select m.brand, m.discount
+    from    BottomDiscount as m
+            left join Brand as b on m.brand = b.id 
+            left join BrandSalesRegion as br on br.brand = m.brand and br.salesregion = 1
+    order by br.level desc, b.name;
 };
