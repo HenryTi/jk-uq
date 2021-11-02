@@ -23,29 +23,6 @@ IX IxCutoffTypeDefinition (
     xi,     -- CutOffType
 );
 
-/* 查询截单类型列表 */
-QUERY GetCutOffTypeList(
-)RETURNS list (
-	cutOffType ID,
-	name char(50)
-) {
-	INTO list SELECT a.id as cutOffType, a.name
-		FROM CutOffType as a
-		order by a.id;
-};
-
-/* 查询发货类型列表 */
-QUERY GetDeliverTypeList(
-)RETURNS list (
-	deliverType ID,
-	name char(20),
-	description char(100)
-) {
-	INTO list SELECT a.id AS deliverType, a.name, a.description
-		FROM DeliverType AS a
-		ORDER BY a.id;
-};
-
 /* 查询接单类型关联的设置信息 */
 QUERY GetCutOffTypeDefinition(
 	cutOffType ID
