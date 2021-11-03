@@ -1,6 +1,6 @@
 ID OrderMainEx GLOBAL (
     id,                             -- 就是OrderMain的id
-    seller CHAR(50),
+    seller ID,
     salesman ID,
     salesRegion ID,
     organization ID,

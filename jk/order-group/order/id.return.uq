@@ -41,7 +41,7 @@ IDX DxReturnDetail ver 0.1 (
 
 ID ReturnMainEx GLOBAL (
     id,                             -- 就是OrderMain的id
-    seller CHAR(50),
+    seller ID,
     salesman ID,
     salesRegion ID,
 );
