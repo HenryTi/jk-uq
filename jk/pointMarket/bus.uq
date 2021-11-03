@@ -70,7 +70,7 @@ BUS poBus from 百灵威系统工程部/PointOrder
         BUS ps2Bus.getPromotionMultiple as a into pm {
             set a.endUser = customer, a.brand = brand, a.price = price, a.retail = retail, a.createDate = createDate;
         }
-    {   
+    {
         --积分年度
         var pointYear int ;
         set pointYear = year(from_unixtime(createDate));
