@@ -6,6 +6,7 @@
         "id: id",
         "customerAccount: id",
         "no: string",
+        "seller: id",
         "currency: id",
         "detail: order-detail -- { name: detail, type: array, fields: order-detail }"
     ],

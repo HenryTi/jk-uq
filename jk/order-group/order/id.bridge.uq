@@ -129,7 +129,7 @@ BUS couponBus.getMatchedCredits as q into tb {
 
     if(buyerAccount <> ifnull(lCustomerAccount, 0) or quantity <> ifnull(lQuantity, 0) or price <> ifnull(lPrice, 0)){
         BUS JkOrderBus.order STAMP createDate;
-        BUS JkOrderBus.order SET id=orderMainId, no=orderId, customerAccount = buyerAccount; -- TODO: 缺少Contact
+        BUS JkOrderBus.order SET id=orderMainId, no=orderId, customerAccount = buyerAccount, seller = seller; -- TODO: 缺少Contact
         BUS JkOrderBus.order INTO detail 
             ADD id = orderDetailId
                     , item = pack
