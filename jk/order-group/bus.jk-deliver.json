@@ -61,5 +61,14 @@
         "waybillNumber: number",
         "carrier: number",
         "createDate: string"
+    ],
+    "truck": [
+        "warehouse: id",
+        "contact: id",
+        "detail: truck-detail"
+    ],
+    "truck-detail":[
+        "biz: id",
+        "json: string"
     ]
 }
