@@ -1,0 +1,44 @@
+/* 送货排车任务 */
+IX IxPendingTruck (
+    ix, -- Warehouse
+    xi, -- deliver detail id,
+    customerAccount ID,
+    contact ID,
+    item ID,
+    quantity dec(18, 4),
+    json text
+);
+
+/* 进行中的送货 */
+IDX DxTrucking (
+    id,
+);
+
+/* 送货（排车）单 */
+ID TruckMain GLOBAL(
+    id,
+    KEY no,
+    customerAccount ID,
+    contact ID,
+	warehouse ID,
+	sys(create)
+);
+
+/* 送货（排车）单扩展信息 */
+IDX DxTruckMain (
+    id,					    -- truck main id
+	staff ID,			    -- 送货人
+	startTime TIMESTAMP,    -- 任务领用时间
+	finishTime TIMESTAMP    -- 任务结束时间
+);
+
+/* 送货（排车）明细 */
+ID TruckDetail GLOBAL(
+    id,
+    main ID TruckMain,    -- TruckMain id
+    biz ID,
+    item ID,
+	quantity dec(18, 4),
+    json text,
+    index idx_biz(biz)
+);
