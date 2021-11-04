@@ -19,8 +19,16 @@ ID DeliverType (
 -- 报废出库 等不须发货的，不在此处处理（deliver bus不应发送这些发货要求）
 IX IxCutoffTypeDefinition (
     ixx,    -- DeliverType
-    ix,     -- CustomerId
+    ix,     -- BuyerAccount(DxCutOffTypeBuyerAccount)
     xi,     -- CutOffType
+);
+
+
+-- 用于定义CutOffType具体条件的buyerAcccount
+IDX DxCutOffTypeBuyerAccount (
+    id,
+    name    char(50),
+    description char(50),
 );
 
 /* 查询接单类型关联的设置信息 */
