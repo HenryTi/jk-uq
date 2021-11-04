@@ -35,3 +35,11 @@ BUS orderDelivered ver 0.01 from [百灵威系统工程部]/[Adapter]
         end if; 
         -/
     };
+
+-- 
+IX OrderDetailDeliver (
+    ix,     -- orderDetail
+    xi,     -- deliverDetail
+	deliverDone DEC(12,2),				-- 已发
+	deliverTime TIMESTAMP,				-- 发货时间
+);

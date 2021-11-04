@@ -1,0 +1,6 @@
+IX ExchangeDetailDeliver (
+    ix,     -- pointExchangeDetail
+    xi,     -- deliverDetail
+	deliverDone DEC(12,2),				-- 已发
+	deliverTime TIMESTAMP,				-- 发货时间
+);
