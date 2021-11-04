@@ -22,3 +22,28 @@ IX InsuredTypeInterval (
     xi,     -- InsuredInterval
     amount  dec(12, 2),     -- 保价金额
 );
+
+/* 查询保价类型对应的品牌数据 */
+QUERY GetInsuredTypeBrand(
+	insuredType ID
+)returns list(
+	insuredType ID,
+	brand ID
+){
+	INTO list SELECT a.ix as insuredType, a.xi as brand
+	FROM InsuredTypeBrand AS a
+	WHERE a.ix = insuredType;
+};
+
+/* 查询保价类型对应保价区间数据 */
+QUERY GetInsuredTypeInterval(
+	insuredType ID
+)returns list(
+	insuredType ID,
+	insuredInterval ID,
+    amount  dec(12, 2)
+){
+	INTO list SELECT a.ix as insuredType, a.xi as insuredInterval, a.amount
+	FROM InsuredTypeInterval AS a
+	WHERE a.ix = insuredType;
+};
