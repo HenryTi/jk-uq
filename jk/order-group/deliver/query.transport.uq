@@ -26,3 +26,17 @@ returns ret (
             JOIN DxDeliverMain as b on a.main = b.id
     where   c.xi = pointExchangeDetail;
 };
+
+
+QUERY GetDeliverDetailTransportation(deliverDetail ID)
+returns ret (
+    deliverDetail ID DeliverDetail,
+    carrier ID Carrier,
+    waybillNumber char(50),
+    deliverTime TIMESTAMP,
+){
+    into ret select a.id as deliverDetail, b.carrier, b.waybillNumber, b.deliverTime
+    from    DeliverDetail as a 
+            JOIN DxDeliverMain as b on a.main = b.id
+    where   a.id = deliverDetail;
+};
