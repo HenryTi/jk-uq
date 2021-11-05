@@ -7,7 +7,7 @@ ACCEPT innerOrderPaid {
 
     VAR tAmount dec(12, 2);
     if (action <> 1) {
-        set tAmount = tAmount * -1;
+        set tAmount = amount * -1;
     }
 
     if not exists(select 1 from ReceiveDetail as t where t.id = receiveDetailId){
