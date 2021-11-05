@@ -2,10 +2,7 @@
 IX IxPendingTruck (
     ix, -- Warehouse
     xi, -- deliver detail id,
-    customerAccount ID,
     contact ID,
-    item ID,
-    quantity dec(18, 4),
     json text
 );
 
@@ -18,7 +15,6 @@ IDX DxTrucking (
 ID TruckMain GLOBAL(
     id,
     KEY no,
-    customerAccount ID,
     contact ID,
 	warehouse ID,
 	sys(create)
@@ -37,8 +33,6 @@ ID TruckDetail GLOBAL(
     id,
     main ID TruckMain,    -- TruckMain id
     biz ID,
-    item ID,
-	quantity dec(18, 4),
     json text,
     index idx_biz(biz)
 );
