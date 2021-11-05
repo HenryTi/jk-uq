@@ -22,7 +22,7 @@ ACCEPT [deliver-done] {
             if not exists(select 1 from OrderDetailDeliver as a where a.ix = orderdetail and a.xi = id) {
                 WITH DxOrderDetail ID = orderdetail SET deliverDone += value, deliverTime = $date;
             }
-            WITH OrderDetailDeliver ix = orderdetail xi = id set deliverDone = value, deliverTime = ifnull($STAMP, $date);
+            WITH OrderDetailDeliver ix = orderdetail xi = id set deliverDone = value, deliverTime = ifnull(from_unixtime($STAMP), $date);
 
             if not exists(select 1 from DxOrderDetail as a 
             join OrderDetail as b on a.id = b.id where b.main = orderMain and a.deliver < a.deliverDone) {
