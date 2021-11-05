@@ -18,7 +18,7 @@ bus cBus from 百灵威系统工程部/coupon
                 OF SELECT t.ix as currentBound, t.boundDate, t.boundDays, a.boundType
                 from tblBoundType as a LEFT JOIN CustomerBound as t on t.xi = a.boundType where t.ixx = couponUser)
             {
-                 if( ifnull(currentBound, 0) <> couponSender 
+                 if(ifnull(currentBound, 0) <> couponSender 
                  and dateadd(day, boundDays, boundDate) < date(now())){
                     if(not currentBound is null){
                         HISTORY CustomerBoundHistory 
