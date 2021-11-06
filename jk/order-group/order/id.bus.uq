@@ -1,7 +1,7 @@
 BUS JkOrderBus ver 0.2 from 百灵威系统工程部/[jk-order]
 ACCEPT [receive-done] {
 	FOR detail {
-        WITH DxOrderDetail ID = id SET receiveDone += value, receiveTime = $date;
+        WITH DxOrderDetail ID = orderDetail SET receiveDone += value, receiveTime = $date;
 	}
 }
 ACCEPT [invoice-done] {
