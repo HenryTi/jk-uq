@@ -2,7 +2,7 @@ ID DeliverMainEx GLOBAL (
     id,
     key deliverId char(50),
     warehouseName char(20),
-    addressString char(100),
+    addressString char(400),
 );
 
 BUS BusAdapterEx ver 0.1 FROM 百灵威系统工程部/Adapter
