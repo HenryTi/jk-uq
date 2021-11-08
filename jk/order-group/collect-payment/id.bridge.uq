@@ -6,6 +6,7 @@ ACCEPT innerOrderPaid {
     BUS JkOrderBus.[receive-done] SET id = receiveMainId;
 
     VAR tAmount dec(12, 2);
+    set tAmount = amount;
     if (action <> 1) {
         set tAmount = amount * -1;
     }
