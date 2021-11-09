@@ -2,9 +2,58 @@ bus JkOrderBus from 百灵威系统工程部/[jk-order];
 
 bus cBus from 百灵威系统工程部/coupon
     ACCEPT [order-coupon] {
+        if(coupon > 0){
+            WITH IxCouponUsed ixx = coupon ix = couponUser xi = id set usedDate = now();
+
+            VAR couponSender ID;
+            SET couponSender = b.xi 
+            from Coupon as t join IxWebuserEmployeeCopy as b on t.creator = b.ix
+            where t.id = coupon;
+
+            TABLE tblBoundType(key boundType smallint);
+            INTO tblBoundType select 1 as boundType;
+            INTO tblBoundType select 2 as boundType;
+
+            FOR (VAR currentBound ID, boundDate date, boundDays smallint, boundType smallint
+                OF SELECT t.ix as currentBound, t.boundDate, t.boundDays, a.boundType
+                from tblBoundType as a LEFT JOIN CustomerBound as t on t.xi = a.boundType where t.ixx = couponUser)
+            {
+                 if(ifnull(currentBound, 0) <> couponSender 
+                 and dateadd(day, boundDays, boundDate) < date(now())){
+                    if(not currentBound is null){
+                        HISTORY CustomerBoundHistory 
+                            set customer = couponUser, boundTo = currentBound, boundType = boundType, operation = 0;
+                    }
+                    HISTORY CustomerBoundHistory 
+                        set customer = couponUser, boundTo = couponSender, boundType = boundType, operation = 1;
+                    set currentBound = couponSender;
+                }
+                WITH CustomerBound ixx = couponUser ix = currentBound xi = boundType 
+                    set boundDate = date(now()), boundDays = ifnull(boundDays, 90); 
+            }
+        }else{
+            FOR(VAR currentBound ID, boundType ENUM EnumBoundType
+                OF SELECT t.ix as currentBound, t.xi as boundType from CustomerBound as t where t.ixx = couponUser)
+            {
+                WITH CustomerBound ixx = couponUser ix = currentBound xi = boundType
+                    SET boundDate = date(now()), boundDays = 90; 
+            }
+        }
+
+        BUS JkOrderBus.[order-bound-staff-sales] set order = id;
+        FOR(VAR currentBound ID, boundType ENUM EnumBoundType, boundTypeText char(10)
+            OF SELECT t.ix as currentBound, t.xi as boundType, '' as boundTypeText from CustomerBound as t where t.ixx = couponUser)
+        {
+            if(boundType = EnumBoundType.assign) SET boundTypeText = 'assign';
+            if(boundType = EnumBoundType.coupon) SET boundTypeText = 'coupon';
+            BUS JkOrderBus.[order-bound-staff-sales] into [to] 
+                ADD [id] = currentBound, [bound-type] = boundTypeText;
+        }
+
+        /*
         VAR currentBound ID, boundDate date, boundDays smallint, boundType ENUM EnumBoundType;
-        SET currentBound = t.xi, boundDate = t.boundDate, boundDays = t.boundDays, boundType = t.boundType
-        from CustomerBound as t where t.ix = couponUser;
+        SET currentBound = t.ix, boundDate = t.boundDate, boundDays = t.boundDays, boundType = t.xi
+        from CustomerBound as t where t.ixx = couponUser;
 
         if(coupon > 0){
             VAR couponSender ID;
@@ -17,39 +66,41 @@ bus cBus from 百灵威系统工程部/coupon
                 set currentBound = couponSender, boundType = EnumBoundType.coupon;
             }
 
-            WITH IxCouponUsed ixx = coupon ix = couponUser xi = id;
+            WITH IxCouponUsed ixx = coupon ix = couponUser xi = id set usedDate = now();
         }
-        if(not currentBound is null){
-            WITH CustomerBound ix = couponUser xi = currentBound 
-                set boundDate = date(now()), boundDays = ifnull(boundDays, 90), boundType = boundType; 
 
-            /*
+        if(not currentBound is null){
+            WITH CustomerBound ixx = couponUser ix = currentBound xi = boundType
+                set boundDate = date(now()), boundDays = ifnull(boundDays, 90); 
+
             BUS JkOrderBus.[order-bound-staff-sales] set order = id;
             BUS JkOrderBus.[order-bound-staff-sales] into [to] ADD [id] = currentBound, [bound-type] = 'assign';
             if(boundType = EnumBoundType.coupon){
                 BUS JkOrderBus.[order-bound-staff-sales] into [to] ADD [id] = currentBound, [bound-type] = 'coupon';
             }
-            */
         }
+        */
     }
+    -- 接收内部系统客户与销售的对应关系
     ACCEPT [customer-bounded] {
-        VAR currentBound ID, boundDate date, boundDays smallint, boundType ENUM EnumBoundType;
-        SET currentBound = t.xi, boundDate = t.boundDate, boundDays = t.boundDays, boundType = t.boundType
-        from CustomerBound as t where t.ix = customer;
+        -- 获取tonva系统中客户当前绑定信息
+        VAR currentBound ID, boundDate date, boundDays smallint;
+        SET currentBound = t.ix, boundDate = t.boundDate, boundDays = t.boundDays
+        from CustomerBound as t where t.ixx = customer and t.xi = boundType;
 
         if(currentBound is null){
-            WITH CustomerBound ix = customer xi = salesman 
-                set boundDate = date(now()), boundDays = 90, boundType = EnumBoundType.assign; 
+            WITH CustomerBound ixx = customer ix = salesman xi = boundType 
+                set boundDate = date(now()), boundDays = 90; 
             HISTORY CustomerBoundHistory 
-                set customer = customer, boundTo = salesman, boundType = EnumBoundType.assign, operation = 1;
+                set customer = customer, boundTo = salesman, boundType = boundType, operation = 1;
         }else{
-            if(currentBound <> salesman and boundType = EnumBoundType.assign){
-                WITH CustomerBound ix = customer xi = salesman 
-                    set boundDate = date(now()), boundDays = boundDays, boundType = EnumBoundType.assign; 
+            if(currentBound <> salesman){
+                WITH CustomerBound ixx = customer ix = salesman xi = boundType 
+                    set boundDate = date(now()), boundDays = boundDays; 
                 HISTORY CustomerBoundHistory 
-                    set customer = customer, boundTo = currentBound, boundType = EnumBoundType.assign, operation = 0;
+                    set customer = customer, boundTo = currentBound, boundType = boundType, operation = 0;
                 HISTORY CustomerBoundHistory 
-                    set customer = customer, boundTo = salesman, boundType = EnumBoundType.assign, operation = 1;
+                    set customer = customer, boundTo = salesman, boundType = boundType, operation = 1;
             } 
         }
     };

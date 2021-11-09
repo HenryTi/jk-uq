@@ -1,4 +1,4 @@
-
+/*
 -- 60天内发运的货物可以退。
 -- 这个目前直接写在代码里面。以后可以设置。甚至根据不同品种设置。
 QUERY GetCustomerReturnable ver 0.1 (
@@ -48,3 +48,4 @@ RETURNS detail (
         WHERE a.main=order
         ORDER BY a.id;
 };
+*/

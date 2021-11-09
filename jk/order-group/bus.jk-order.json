@@ -6,6 +6,7 @@
         "id: id",
         "customerAccount: id",
         "no: string",
+        "seller: id",
         "currency: id",
         "detail: order-detail -- { name: detail, type: array, fields: order-detail }"
     ],
@@ -34,38 +35,6 @@
         "id: id",
         "orderdetail: id",
         "value: number"
-    ],
-    "deliver-detail": [
-        "id: id  -- order detail id",
-        "quantity: number  -- 同一个合同明细可能会分多次不同数量发送",
-        "warehouse: id",
-        "showPrice: number                  -- 单据上是否显示价格, 需要则1",
-        "json: string                       -- 只需要在界面展示的信息以json格式存储"
-    ],
-    "deliver": [
-        "-- 通用些的发运字段，一般不会变化",
-        "id: id  -- order id",
-        "contact: id -- 发货地址id。",
-        "detail: deliver-detail"
-    ],
-    "deliver-done": [
-        "note",
-        "warehouse: id"
-    ],
-    "pickup-detail":[
-        "id: id    -- 发运单明细",
-        "orderDetail: id",
-        "quantity: number",
-        "lotNumber: string"
-    ],
-    "pickup": [
-        "warehouse: id",
-        "cutOffMain: id   -- 截单号",
-        "detail: pickup-detail"
-    ],
-    "pickup-done": [
-        "deliverDetail: id",
-        "quantity: number"
     ],
     "receive": [
         "note"

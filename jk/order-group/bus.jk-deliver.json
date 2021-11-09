@@ -44,6 +44,31 @@
         "detail: pickup-detail"
     ],
     "pickup-done": [
-        "note"
+        "id: id",
+        "operator: id",
+        "stamp: number",
+        "detail: note-detail"
+    ],
+    "deliver-done2": [
+        "-- 和deliver-done一样，只是专用于老系统接收，更新老系统中sorder表的对应字段",
+        "id: id",
+        "detail: deliver-done2-detail"
+    ],
+    "deliver-done2-detail": [
+        "id: id",
+        "biz: id",
+        "value: number",
+        "waybillNumber: number",
+        "carrier: number",
+        "createDate: string"
+    ],
+    "truck": [
+        "warehouse: id",
+        "contact: id",
+        "detail: truck-detail"
+    ],
+    "truck-detail":[
+        "biz: id",
+        "json: string"
     ]
 }

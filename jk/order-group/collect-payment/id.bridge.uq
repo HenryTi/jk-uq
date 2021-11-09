@@ -1,13 +1,21 @@
 BUS fiRBus from 百灵威系统工程部/FiReceivable
 ACCEPT innerOrderPaid {
-    BUS JkOrderBus.[receive-done] SET id=null;
-    if (action = 1) {
-        WITH DxOrderDetail as a ID = orderDetailId set a.receiveDone += amount;
-        BUS JkOrderBus.[receive-done] INTO detail 
-            ADD id = null, orderdetail = orderDetailId, value = amount;
-    } else {
-        WITH DxOrderDetail as a ID = orderDetailId set a.receiveDone -= amount;
-        BUS JkOrderBus.[receive-done] INTO detail 
-            ADD id = null, orderdetail = orderDetailId, value = amount * -1;
-    }	
+    WITH ReceiveMain ID = receiveMainId;
+
+    BUS JkOrderBus.[receive-done] STAMP createDate/1000;
+    BUS JkOrderBus.[receive-done] SET id = receiveMainId;
+
+    VAR tAmount dec(12, 2);
+    set tAmount = amount;
+    if (action <> 1) {
+        set tAmount = amount * -1;
+    }
+
+    if not exists(select 1 from ReceiveDetail as t where t.id = receiveDetailId){
+        WITH DxOrderDetail as a ID = orderDetailId set a.receiveDone += tAmount;
+    }
+    WITH ReceiveDetail ID = receiveDetailId 
+        SET main = receiveMainId, orderDetail = orderDetailId, amount = tAmount, createDate = from_unixtime(createDate/1000);
+    BUS JkOrderBus.[receive-done] INTO detail 
+        ADD id = receiveDetailId, orderdetail = orderDetailId, value = tAmount;
 };

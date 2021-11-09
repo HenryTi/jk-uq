@@ -70,7 +70,7 @@ BUS poBus from 百灵威系统工程部/PointOrder
         BUS ps2Bus.getPromotionMultiple as a into pm {
             set a.endUser = customer, a.brand = brand, a.price = price, a.retail = retail, a.createDate = createDate;
         }
-    {   
+    {
         --积分年度
         var pointYear int ;
         set pointYear = year(from_unixtime(createDate));
@@ -203,39 +203,43 @@ BUS JkOrderBus from 百灵威系统工程部/[jk-order]
             var pointYear int;      -- 积分年度
             var customer int;        -- 最终积分用户
             var rTotalPoint int;        -- 订单总积分
+            var rPoint int;         -- 订单有效积分
             var orderMainNo char(50);
             var orderDetailNo char(50);
             var orderDetailId int;
 
-            if exists (select 1 from DxOrderDetail as dod where dod.id = id) {
+            if exists (select 1 from DxOrderDetail as dod where dod.id = orderdetail) {
                 set lValidPoint = value * b.multiple
-                    , customer = a.endUser, pointYear = year(a.createDate), rTotalPoint = b.totalPoint
+                    , customer = a.endUser, pointYear = year(a.createDate), rTotalPoint = b.totalPoint, rPoint = b.point
                     , orderMainNo = a.orderMainNo, orderDetailNo = a.orderDetailNo
-                    , orderDetailId = id
+                    , orderDetailId = orderdetail
                 from    OrderDetail as a
                         join DxOrderDetail as b on a.id = b.id
-                where a.id = id;
+                where a.id = orderdetail;
 
                 -- 如果本次回款有效积分大于订单总积分，则本次回款有效积分修改为订单总积分
                 if (lValidPoint > rTotalPoint) {
                     set lValidPoint = rTotalPoint;
                 }
 
-                -- 1.有效积分记账
-                -- 1.1. 针对客户
-                book PointBookByCustomer at (customer, pointYear) set point += lValidPoint;
-                -- 1.2.订单积分记账，针对订单明细
-                WITH DxOrderDetail as a ID = orderDetailId set a.point += lValidPoint;
+                -- 订单累计有效积分不能大于总积分
+                if ( rTotalPoint > (lValidPoint + rPoint) ) {                    
+                    -- 1.有效积分记账
+                    -- 1.1. 针对客户
+                    book PointBookByCustomer at (customer, pointYear) set point += lValidPoint;
+                    -- 1.2.订单积分记账，针对订单明细
+                    WITH DxOrderDetail as a ID = orderDetailId set a.point += lValidPoint;
 
-                -- 2.积分历史记录
-                -- 2.1针对客户、年度、积分、积分来源分类、积分源ID(订单ID,积分券Id),备注（上次积分与本次积分计算过程）
-                history PointHistoryByCustomer 
-                    set pointYear = pointYear, point = lValidPoint, pointType = EnumPointType.point, source = EnumPointChangingSource.order, 
-                    comments = concat(orderMainNo, ',', orderDetailNo), customer = customer;               
-                -- 2.2 针对订单明细
-                history OrderDetailPointHistory
-                    set orderDetailId = orderDetailId, pointYear = pointYear, point = lValidPoint, 
-                    type = 6, comments = concat(orderMainNo, ',', orderDetailNo);
+                    -- 2.积分历史记录
+                    -- 2.1针对客户、年度、积分、积分来源分类、积分源ID(订单ID,积分券Id),备注（上次积分与本次积分计算过程）
+                    history PointHistoryByCustomer 
+                        set pointYear = pointYear, point = lValidPoint, pointType = EnumPointType.point, source = EnumPointChangingSource.order, 
+                        comments = concat(orderMainNo, ',', orderDetailNo), customer = customer;               
+                    -- 2.2 针对订单明细
+                    history OrderDetailPointHistory
+                        set orderDetailId = orderDetailId, pointYear = pointYear, point = lValidPoint, 
+                        type = 6, comments = concat(orderMainNo, ',', orderDetailNo);
+                }
             }
         }
     }
@@ -329,7 +333,10 @@ ACCEPT [deliver-done] {
 
         SET exchangeDetailId = a.id, exchangeMainId = a.main from ExchangeDetail as a where a.id = biz;
         if(not exchangeDetailId is null){
-            WITH DxExchangeDetail ID = exchangeDetailId SET deliverDone += value, deliverTime = $date;
+            if not exists(select 1 from ExchangeDetailDeliver as a where a.ix = exchangeDetailId and a.xi = id) {
+                WITH DxExchangeDetail ID = exchangeDetailId SET deliverDone += value, deliverTime = $date;
+            }
+            WITH ExchangeDetailDeliver ix = exchangeDetailId xi = id set deliverDone = value, deliverTime = ifnull(from_unixtime($STAMP), $date);
 
             if not exists(select 1 from DxExchangeDetail as a 
             join ExchangeDetail as b on a.id = b.id where b.main = exchangeMainId and a.deliver < a.deliverDone) {

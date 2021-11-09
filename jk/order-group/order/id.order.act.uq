@@ -1,4 +1,4 @@
-
+/*
 -- 网上直接付款。这个应该走url通道，由网上支付公司来调用？
 -- 或者收款走手工，然后由收款人调用这个Action
 ACTION OrderPaid (
@@ -151,3 +151,4 @@ RETURNS ret (
 	}
 	INTO ret SELECT mainId as id;
 };
+*/

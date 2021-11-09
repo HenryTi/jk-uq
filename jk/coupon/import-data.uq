@@ -1,0 +1,21 @@
+ACT AcceptCustomerBounded(customer ID, salesman ID, boundType smallint) {
+    VAR currentBound ID, boundDate date, boundDays smallint;
+    SET currentBound = t.ix, boundDate = t.boundDate, boundDays = t.boundDays
+    from CustomerBound as t where t.ixx = customer and t.xi = boundType;
+
+    if(currentBound is null){
+        WITH CustomerBound ixx = customer ix = salesman xi = boundType 
+            set boundDate = date(now()), boundDays = 90; 
+        HISTORY CustomerBoundHistory 
+            set customer = customer, boundTo = salesman, boundType = boundType, operation = 1;
+    }else{
+        if(currentBound <> salesman){
+            WITH CustomerBound ixx = customer ix = salesman xi = boundType 
+                set boundDate = date(now()), boundDays = boundDays; 
+            HISTORY CustomerBoundHistory 
+                set customer = customer, boundTo = currentBound, boundType = boundType, operation = 0;
+            HISTORY CustomerBoundHistory 
+                set customer = customer, boundTo = salesman, boundType = boundType, operation = 1;
+        } 
+    }
+};

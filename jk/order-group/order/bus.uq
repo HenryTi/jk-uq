@@ -10,13 +10,6 @@ bus fiReceivable from 百灵威系统工程部/FiReceivable
         delete p from OrderReceivable as p where p.order = order;
     };
 
-/*
-BUS JkOrderBus ver 0.2 from 百灵威系统工程部/[jk-order]
-ACCEPT [receive-done] {
-    FOR detail {
-        WITH DxOrderDetail ID = id SET receiveDone += value, receiveTime = $date;
-    }
-};
 
 BUS JkDeliverBus ver 0.2 from 百灵威系统工程部/[jk-deliver]
 ACCEPT [deliver-done] {
@@ -26,7 +19,10 @@ ACCEPT [deliver-done] {
 
         SET orderdetail = a.id, orderMain = a.main from OrderDetail as a where a.id = biz;
         if(not orderdetail is null){
-            WITH DxOrderDetail ID = orderdetail SET deliverDone += value, deliverTime = $date;
+            if not exists(select 1 from OrderDetailDeliver as a where a.ix = orderdetail and a.xi = id) {
+                WITH DxOrderDetail ID = orderdetail SET deliverDone += value, deliverTime = $date;
+            }
+            WITH OrderDetailDeliver ix = orderdetail xi = id set deliverDone = value, deliverTime = ifnull(from_unixtime($STAMP), $date);
 
             if not exists(select 1 from DxOrderDetail as a 
             join OrderDetail as b on a.id = b.id where b.main = orderMain and a.deliver < a.deliverDone) {
@@ -35,4 +31,3 @@ ACCEPT [deliver-done] {
         }
     }
 };
-*/

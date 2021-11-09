@@ -1,0 +1,5 @@
+TUID Company (
+    id,
+    no  char(10),
+    name char(30) not null,
+);
