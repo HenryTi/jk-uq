@@ -1,0 +1,109 @@
+BUS JkDeliverBus ver 0.7 from 百灵威系统工程部/[jk-deliver];
+BUS JkOrderBus ver 0.7 from 百灵威系统工程部/[jk-order];
+
+ID OrderMain ver 0.6 GLOBAL (
+	id,
+	KEY no,
+    webUser ID,                         -- 下单user注册账号
+	customer ID,                        -- 弃用,ligsh, 20210914
+    buyerAccount ID,                    -- 买方账号
+
+	shippingContact ID,                 -- 发货地址
+	invoiceContact ID,                  -- 发票寄送地址
+    invoiceType ID,                     -- 增值税，普通发票
+    invoiceInfo ID,                     -- 发票抬头，税号等
+
+	sumAmount DEC(12,2),	            -- 订单总金额。各行金额
+    currency ID,
+
+	couponNo CHAR(16),                  -- 优惠券
+
+	sheetId ID,
+    createDate TIMESTAMP,
+	INDEX customer_id(customer, id) UNIQUE,
+	INDEX sheetId(sheetId) UNIQUE,
+);
+
+ID OrderDetail ver 0.6 GLOBAL (
+	id,
+	main ID OrderMain,
+	warehouse ID,
+	item ID,
+	product ID,
+	quantity DEC(12,2),
+	price DEC(12,2),                    -- 实际成交价
+	amount DEC(18,4),					-- 实际成交金额
+    lotNumber char(50),
+    createDate TIMESTAMP,
+);
+
+-- 保存订单，为了mock数据，直接发order bus，同时发deliver
+ACTION SaveOrder ver 0.2 (
+	# [OrderMain],
+	ARR detail (
+		# OrderDetail,
+	),
+)
+RETURNS ret (
+	id ID,				-- 退货单id
+) {
+	-- 复核数量，单价。
+	-- 如果复核错误，返回0。订单单不能保存
+	VAR mainId ID, checkOk TINYINT;
+	SET mainId = 0;
+	SET checkOk = 1;
+	IF checkOk = 1 {
+		VAR orderNo CHAR(20), stamp INT;
+		SET stamp=unix_timestamp('2021-10-21');
+		SET orderNo = NO(OrderMain, stamp);
+		SET mainId=ID(OrderMain new, orderNo);
+		WITH OrderMain ID=mainId SET customer=customer
+--			, sumQuanity=sumQuanity 	-- 各行数量和
+			, sumAmount=sumAmount		-- 各行金额和
+			, couponNo=couponNo
+			, sheetId=sheetId
+    		, shippingContact=shippingContact;
+		BUS JkOrderBus.order SET id=mainId, no=orderNo, customerAccount=customer;
+		-- BUS JkOrderBus.[deliver-ext] SET id=mainId;
+		-- BUS JkOrderBus.deliver SET id=mainId, contact=shippingContact;
+		FOR detail {
+			VAR detailId ID;
+			SET detailId=ID(OrderDetail new);
+			WITH OrderDetail as a ID=detailId SET a.main=mainId
+				, a.item=item, a.product=product
+				, a.warehouse=warehouse
+				, a.quantity=quantity, a.price=price, a.amount=amount;
+			-- WITH DxOrderDetail ID=detailId SET deliver=quantity;
+			BUS JkOrderBus.order INTO detail 
+				ADD id = detailId
+					, item = item
+					, product = product
+					, quantity = quantity
+					, amount = amount
+					, price = price;
+			-- BUS JkOrderBus.[deliver-ext] INTO detail 
+			--	ADD id = detailId, needInsuredWhenDelivery = 0;
+			-- BUS JkOrderBus.deliver INTO detail 
+			--	ADD id = detailId, warehouse = warehouse;
+		}
+		BUS JkOrderBus.order STAMP stamp;
+	}
+	INTO ret SELECT mainId as id;
+};
+
+
+ACT DeliverDone(
+	deliver ID,
+	ARR detail (
+		deliverDetail ID,	-- 发货单明细id
+		orderDetail ID,		-- 订单明细id，发bus用
+		quantity DEC(12,2)	-- 实际发货数
+	)
+){
+	BUS JkDeliverBus.[deliver-done] set id = deliver;
+	FOR detail {
+		-- WITH DxDeliverDetail as a ID = deliverDetail SET a.deliverDone = quantity;
+    	BUS JkDeliverBus.[deliver-done] into detail ADD id = deliverDetail, biz = orderDetail, value = quantity;
+	}
+    BUS JkDeliverBus.[deliver-done] STAMP unix_timestamp('2021-10-21');
+};

@@ -71,8 +71,9 @@ RETURNS ret (
 	SET mainId = 0;
 	SET checkOk = 1;
 	IF checkOk = 1 {
-		VAR orderNo CHAR(20);
-		SET orderNo = NO(OrderMain);
+		VAR orderNo CHAR(20), stamp INT;
+		SET stamp=unix_timestamp('2021-10-21');
+		SET orderNo = NO(OrderMain, stamp);
 		SET mainId=ID(OrderMain new, orderNo);
 		WITH OrderMain ID=mainId SET customer=customer
 --			, sumQuanity=sumQuanity 	-- 各行数量和
@@ -103,6 +104,7 @@ RETURNS ret (
 			-- BUS JkOrderBus.deliver INTO detail 
 			--	ADD id = detailId, warehouse = warehouse;
 		}
+		BUS JkOrderBus.order STAMP stamp;
 	}
 	INTO ret SELECT mainId as id;
 };
