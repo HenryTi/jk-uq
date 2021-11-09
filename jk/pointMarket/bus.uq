@@ -175,6 +175,10 @@ BUS poBus from 百灵威系统工程部/PointOrder
         }
 
         -- 保存订单信息
+        -- 订单
+        WITH OrderMain as a id = orderMainId
+            set a.no = orderMainNo;
+        -- 订单明细
         WITH OrderDetail as a id=orderDetailId
             set a.endUser = customer, a.createDate = from_unixtime(createDate)
                 ,a.orderMainNo=orderMainNo, a.orderDetailNo = orderDetailNo;
@@ -198,6 +202,10 @@ BUS JkOrderBus from 百灵威系统工程部/[jk-order]
     }
     -- 订单回款计算有效积分
     ACCEPT [receive-done] {
+        VAR reMainId ID;
+        set reMainId = id;
+        WITH ReceiveMain as a ID = id
+
         FOR detail {
             var lValidPoint int;    -- 本次回款有效积分
             var pointYear int;      -- 积分年度
@@ -207,9 +215,22 @@ BUS JkOrderBus from 百灵威系统工程部/[jk-order]
             var orderMainNo char(50);
             var orderDetailNo char(50);
             var orderDetailId int;
+            var lReceiveValue DEC(12,2);  --上次回款金额
+            var dReceiveValue dec(12,2);  --回款差额
+            
+            -- 获取上次回款金额
+            set lReceiveValue = a.amount
+            from ReceiveDetail as a
+            where a.id=id;
 
-            if exists (select 1 from DxOrderDetail as dod where dod.id = orderdetail) {
-                set lValidPoint = value * b.multiple
+            set lReceiveValue = ifnull(lReceiveValue , 0);
+
+            -- 计算回款差额
+            set dReceiveValue = ifnull(value , 0) - lReceiveValue;
+    
+            if exists (select 1 from DxOrderDetail as dod where dod.id = orderdetail and dod.totalPoint > 0) {
+
+                set lValidPoint = dReceiveValue * b.multiple
                     , customer = a.endUser, pointYear = year(a.createDate), rTotalPoint = b.totalPoint, rPoint = b.point
                     , orderMainNo = a.orderMainNo, orderDetailNo = a.orderDetailNo
                     , orderDetailId = orderdetail
@@ -217,13 +238,8 @@ BUS JkOrderBus from 百灵威系统工程部/[jk-order]
                         join DxOrderDetail as b on a.id = b.id
                 where a.id = orderdetail;
 
-                -- 如果本次回款有效积分大于订单总积分，则本次回款有效积分修改为订单总积分
-                if (lValidPoint > rTotalPoint) {
-                    set lValidPoint = rTotalPoint;
-                }
-
                 -- 订单累计有效积分不能大于总积分
-                if ( rTotalPoint > (lValidPoint + rPoint) ) {                    
+                if ( lValidPoint <> 0 ) {                    
                     -- 1.有效积分记账
                     -- 1.1. 针对客户
                     book PointBookByCustomer at (customer, pointYear) set point += lValidPoint;
@@ -241,6 +257,12 @@ BUS JkOrderBus from 百灵威系统工程部/[jk-order]
                         type = 6, comments = concat(orderMainNo, ',', orderDetailNo);
                 }
             }
+
+            -- 记录回款单
+            with ReceiveDetail as a ID = id
+                set a.main = reMainId, a.orderDetail = orderDetail, a.amount = ifnull(value , 0);
+
+
         }
     }
     ACCEPT return {

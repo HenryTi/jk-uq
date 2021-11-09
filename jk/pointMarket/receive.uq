@@ -1,0 +1,15 @@
+
+-- 回款单，2021.11.09，D72
+ID ReceiveMain GLOBAL (
+    id,
+    createDate TIMESTAMP,
+);
+
+-- 回款单明细，2021.11.09，D72
+ID ReceiveDetail GLOBAL (
+    id,	
+    main ID ReceiveMain,
+    orderDetail ID OrderDetail,
+    amount DEC(12,2),
+    createDate TIMESTAMP,
+);
