@@ -89,8 +89,8 @@ returns ret (
     set orderX = a.ix from IxCouponUsed as a where a.ix = id and a.xi = customer limit 1;
 
     var salesmanBounded ID [$user];    --客户的当前轻代理
-    set salesmanBounded = c.xi from CustomerBound as c 
-    where c.ixx = customer and c.xi = EnumBoundType.coupon and c.boundDate > dateadd(day, c.boundDays, now()) 
+    set salesmanBounded = c.salesman from CustomerBound as c 
+    where c.ID = customer and c.boundDate > dateadd(day, c.boundDays * -1, now()) 
     limit 1; --当前轻代理
 
     if (coupon is null) {
