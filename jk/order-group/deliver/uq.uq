@@ -1,9 +1,69 @@
-UQ 百灵威系统工程部/deliver version='1.00' author='ligsh' {
-	VAR a INT;
-	SET a=1;
-};
+UQ 百灵威系统工程部/deliver version='1.00' author='ligsh';
 
-ROLE
-	warehouseManager: '库房经理',
-	dispatcher: '派货员，做发运操'
+ENUM EnumRole (
+	all					= 1,
+	dev					= 2,
+	warehouseManager    = 3,
+	cutOffer            = 4,
+	tallyer             = 5,
+	checker             = 6,
+	picker              = 7,
+    packer              = 8,
+	dispatcher          = 9,
+);
+
+ENUM EnumRoleOp (
+	test				= 1,
+);
+
+ID Role CONST (
+	id small,
+	name CHAR(50),
+	discription CHAR(200),
+)
++ (id, name, discription)
+VALUES
+(EnumRole.all, '总管', '查看全部各种数据'),
+(EnumRole.dev, '系统总管', '查看全部各种数据'),
+(EnumRole.warehouseManager, '库房经理', '分配权限，过程管理'),
+(EnumRole.cutOffer, '截单员', '负责截单、打印各种单据'),
+(EnumRole.tallyer, '理货员', '负责理货（将出库产品和单据分配到不同托盘中）'),
+(EnumRole.checker, '验货员', '负责验货（清扫出库产品，检查包装/性状等）'),
+(EnumRole.picker, '拣货员', '负责产品下架出库'),
+(EnumRole.packer, '发货员', '负责产品打包'),
+(EnumRole.dispatcher, '送货员', '负责开车送货给客户'),
 ;
+
+IX UserRole (
+	ix USER,
+	xi Role,
+);
+
+IX RoleOps CONST (
+	ix ENUM EnumRole,
+	xi ENUM EnumRoleOp, 
+)
++ (ix, xi)
+VALUES
+(EnumRole.all, EnumRoleOp.test),
+(EnumRole.dev, EnumRoleOp.test),
+(EnumRole.warehouseManager, EnumRoleOp.test),
+(EnumRole.cutOffer, EnumRoleOp.test),
+(EnumRole.tallyer, EnumRoleOp.test),
+(EnumRole.checker, EnumRoleOp.test),
+(EnumRole.picker, EnumRoleOp.test),
+(EnumRole.packer, EnumRoleOp.test),
+(EnumRole.dispatcher, EnumRoleOp.test),
+;
+
+QUERY GetRoleOps()
+RETURNS ret (
+	role ENUM EnumRole,
+	op ENUM EnumRoleOp,
+)
+{
+	INTO ret SELECT DISTINCT a.ix as role, a.xi as op
+		FROM RoleOps as a
+			JOIN UserRole as b ON a.ix=b.xi
+		WHERE b.ix=$user;
+};
