@@ -221,15 +221,13 @@ BUS JkOrderBus from 百灵威系统工程部/[jk-order]
             -- 获取上次回款金额
             set lReceiveValue = a.amount
             from ReceiveDetail as a
-            where a.id=id;
-
+            where a.id = id;
             set lReceiveValue = ifnull(lReceiveValue , 0);
 
             -- 计算回款差额
             set dReceiveValue = ifnull(value , 0) - lReceiveValue;
     
             if exists (select 1 from DxOrderDetail as dod where dod.id = orderdetail and dod.totalPoint > 0) {
-
                 set lValidPoint = dReceiveValue * b.multiple
                     , customer = a.endUser, pointYear = year(a.createDate), rTotalPoint = b.totalPoint, rPoint = b.point
                     , orderMainNo = a.orderMainNo, orderDetailNo = a.orderDetailNo
@@ -261,8 +259,6 @@ BUS JkOrderBus from 百灵威系统工程部/[jk-order]
             -- 记录回款单
             with ReceiveDetail as a ID = id
                 set a.main = reMainId, a.orderDetail = orderDetail, a.amount = ifnull(value , 0);
-
-
         }
     }
     ACCEPT return {
