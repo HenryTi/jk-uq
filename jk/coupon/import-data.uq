@@ -1,21 +1,31 @@
 ACT AcceptCustomerBounded(customer ID, salesman ID, boundType smallint) {
+    PROC ProcCustomerBound(customer, salesman, boundType);
+};
+
+PROC ProcCustomerBound(customer ID, salesman ID, boundType smallint) {
+    /*
+        * 处理逻辑：看当前客户有无绑定，无绑定的，直接绑定到传入的saleeman和绑定类型；有绑定的，看当前绑定和传入的saleman是否相同，
+        * 相同的，直接延期；不同的，看当前绑定是否过期，过期且传入绑定类型为coupon的，换绑；
+    */
+    -- 获取tonva系统中客户当前绑定信息
     VAR currentBound ID, boundDate date, boundDays smallint;
-    SET currentBound = t.ix, boundDate = t.boundDate, boundDays = t.boundDays
-    from CustomerBound as t where t.ixx = customer and t.xi = boundType;
+    SET currentBound = t.salesman, boundDate = t.boundDate, boundDays = t.boundDays
+    from CustomerBound as t where t.ID = customer;
 
     if(currentBound is null){
-        WITH CustomerBound ixx = customer ix = salesman xi = boundType 
-            set boundDate = date(now()), boundDays = 90; 
-        HISTORY CustomerBoundHistory 
-            set customer = customer, boundTo = salesman, boundType = boundType, operation = 1;
+        WITH CustomerBound as a ID = customer 
+            set a.salesman = salesman, a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
+        -- HISTORY CustomerBoundHistory set customer = customer, boundTo = salesman, boundType = boundType, operation = 1;
     }else{
         if(currentBound <> salesman){
-            WITH CustomerBound ixx = customer ix = salesman xi = boundType 
-                set boundDate = date(now()), boundDays = boundDays; 
-            HISTORY CustomerBoundHistory 
-                set customer = customer, boundTo = currentBound, boundType = boundType, operation = 0;
-            HISTORY CustomerBoundHistory 
-                set customer = customer, boundTo = salesman, boundType = boundType, operation = 1;
-        } 
+            if(boundType = EnumBoundType.coupon and dateadd(day, boundDays, boundDate) < date(now())) {
+                WITH CustomerBound as a ID = customer 
+                    set a.salesman = salesman, a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
+                -- HISTORY CustomerBoundHistory set customer = customer, boundTo = salesman, boundType = boundType, operation = 1;
+            }
+        }else{
+            WITH CustomerBound as a ID = customer 
+                set a.salesman = salesman, a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
+        }
     }
 };

@@ -140,10 +140,18 @@ BUS couponBus.getMatchedCredits as q into tb {
                     , amount = quantity*price;  -- TODO:缺少lotNumber等
     }
     if(ifnull(lBottomPrice, 0) - ifnull(bottomPrice, 0) > 0.001 or ifnull(lBottomPrice, 0) - ifnull(bottomPrice, 0) < -0.001
+    or ifnull(lPrice, 0) - ifnull(price, 0) > 0.001 or ifnull(lPrice, 0) - ifnull(price, 0) < -0.001
     or $importing = 1){
+        -- cost的计算方法： 提成c = (price - cost) * 0.08 = max(price - bottomPrice, price * 0.08) * 0.08;
+        -- 所以price - cost = max(price - bottomPrice, price * 0.08) => cost = price - max(price - bottomPrice, price * 0.08) =>
+        -- cost = min(bottomPrice, price * (1-0.08)) 
+        VAR specCost dec(18, 4);
+        SET specCost = bottomPrice;
+        IF(specCost > price * (1 - 0.08))
+            set specCost = price * (1 - 0.08);
         BUS JkOrderBus.[order-sale-cost] set order = orderMainId;
         BUS JkOrderBus.[order-sale-cost] into [detail]
-            ADD [order-detail] = orderDetailId, [cost] = bottomPrice;
+            ADD [order-detail] = orderDetailId, [cost] = specCost;
     }
 }
 ACCEPT returnChanged {

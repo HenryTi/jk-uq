@@ -1,9 +1,9 @@
-IX CustomerBound (
-    ixx,    -- customer
-    ix,     -- salesman employee id
-    xi,     -- boundType 
+IDX CustomerBound (
+    ID,     -- customer
+    salesman ID,
     boundDate   date,
     boundDays   smallint,
+    boundType   ENUM EnumBoundType
 );
 
 ENUM EnumBoundType (assign = 1, coupon = 2);
@@ -22,7 +22,6 @@ IX WebUserBound (
     xi,     -- boundType 
     boundDate   date,
     boundDays   smallint,
-    boundType   ENUM EnumBoundType
 );
 
 HISTORY WebUserBoundHistory (

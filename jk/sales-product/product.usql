@@ -79,6 +79,7 @@ OPEN Map ProductChemical (
     key chemical ID Chemical,
     CAS char(20),
     purity char(80),
+    gradeCN char(200),
     molecularFomula char(200),
     molecularWeight char(30),
     index idx_unit_cas,
