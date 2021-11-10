@@ -203,8 +203,8 @@ BUS JkOrderBus from 百灵威系统工程部/[jk-order]
     -- 订单回款计算有效积分
     ACCEPT [receive-done] {
         VAR reMainId ID;
-        set reMainId = id;
-        WITH ReceiveMain as a ID = id
+        SET reMainId = id;
+        WITH ReceiveMain as a ID = id;
 
         FOR detail {
             var lValidPoint int;    -- 本次回款有效积分
