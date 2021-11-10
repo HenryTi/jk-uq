@@ -396,6 +396,7 @@ ACT UpdateDeliverCarrier(
 	carrier ID
 ){
 	WITH DxDeliverMain as a ID = deliverMain SET a.carrier = carrier;
+	-- 发bus：truck
 };
 
 /* 修改发货单发运单号 */

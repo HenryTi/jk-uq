@@ -97,4 +97,9 @@ ACCEPT [pickup-done] {
             WITH DxDeliverMain as a ID = main SET a.pickRows = a.pickRows + 1;
         }
     }
+}
+ACCEPT truck {
+	FOR detail {
+		WITH IxPendingTruck as a ix = warehouse xi = biz SET a.contact = contact, a.json = json;
+	}
 };
