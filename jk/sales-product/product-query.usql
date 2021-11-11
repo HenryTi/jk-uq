@@ -69,6 +69,7 @@ PAGE (
     chemical ID Chemical,
     CAS char(20),
     purity char(80),
+    gradeCN char(200),
     molecularFomula char(200),
     molecularWeight char(30)
 ) {
@@ -117,9 +118,11 @@ PAGE (
     order by p.sourcerank, p.score desc, p.hasstock desc, p.level desc
     limit 499;
 
-    INSERT  INTO `_$page` (`id`, `no`,`brand`,`origin`,`description`,`descriptionc`,`imageurl`,`chemical`,`cas`,`purity`,`molecularfomula`,`molecularweight`, `seq`)
+    INSERT  INTO `_$page` (`id`, `no`,`brand`,`origin`,`description`,`descriptionc`,`imageurl`,`chemical`,`cas`,`purity`
+            , `gradeCN`,`molecularfomula`,`molecularweight`, `seq`)
     SELECT  p.`id`,p.`no` AS `no`,p.`brand` AS `brand`,p.`origin` AS `origin`,p.`description` AS `description`
-            ,p.`descriptionc` AS `descriptionc`,p.`imageurl` AS `imageurl`,pc.`chemical` AS `chemical`,pc.`cas` AS `cas`,pc.`purity` AS `purity`,pc.`molecularfomula` AS `molecularfomula`,pc.`molecularweight` AS `molecularweight`,
+            ,p.`descriptionc` AS `descriptionc`,p.`imageurl` AS `imageurl`,pc.`chemical` AS `chemical`,pc.`cas` AS `cas`,
+            pc.`purity` AS `purity`, pc.`gradeCN`, pc.`molecularfomula` AS `molecularfomula`,pc.`molecularweight` AS `molecularweight`,
             pp.`id` as `seq`
     from    `_$page_product` as pp
             inner join tv_productx as p on p.id = pp.product
