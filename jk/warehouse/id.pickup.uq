@@ -235,11 +235,14 @@ ACT Picked (
 ) {
 	WITH DxPicking ID=pickup DEL;
 	WITH Pickup ID=pickup SET finishTime=$date;
-    BUS JkDeliverBus.[pickup-done] SET id = pickup, operator = 1208, stamp = unix_timestamp(now());
+    BUS JkDeliverBus.[pickup-done] SET id = pickup;
+    BUS JkDeliverBus.[pickup-performance] SET id = pickup, operator = 1208, stamp = unix_timestamp(now());
 	FOR detail {
 		-- todo：检查出库数与拣货数不一致的话，生成退货
 		-- 拣货完成
 		BUS JkDeliverBus.[pickup-done] into detail ADD id = pickupDetail, biz = biz, value = quantity;
+		BUS JkDeliverBus.[pickup-performance] into detail 
+            ADD id = pickupDetail, biz = biz, value = quantity * 8 / 700;
 	}
 	TUID [$User] ID ($user) SET poke=1;
 };
