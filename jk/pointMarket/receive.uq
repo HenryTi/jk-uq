@@ -13,3 +13,11 @@ ID ReceiveDetail GLOBAL (
     amount DEC(12,2),
     createDate TIMESTAMP,
 );
+
+-- 订单回款记录，用于有效积分计算
+IX IxOrderDetailReceive (
+    ix,     -- orderDetail
+    xi,     -- receiveDetail
+	receiveAmount DEC(12,2),    -- 回款金额
+	createDate TIMESTAMP,		
+);
