@@ -44,10 +44,7 @@
         "detail: pickup-detail"
     ],
     "pickup-done": [
-        "id: id",
-        "operator: id",
-        "stamp: number",
-        "detail: note-detail"
+        "note"
     ],
     "deliver-done2": [
         "-- 和deliver-done一样，只是专用于老系统接收，更新老系统中sorder表的对应字段",
@@ -70,5 +67,29 @@
     "truck-detail":[
         "biz: id",
         "json: string"
+    ],
+    "pickup-performance": [
+        "id: id",
+        "operator: id",
+        "stamp: number",
+        "detail: note-detail"
+    ],
+    "deliver-performance": [
+        "id: id",
+        "operator: id",
+        "stamp: number",
+        "detail: note-detail"
+    ],
+    "dispatch-performance": [
+        "id: id",
+        "operator: id",
+        "stamp: number",
+        "detail: note-detail"
+    ],
+    "tally-performance": [
+        "id: id",
+        "operator: id",
+        "stamp: number",
+        "detail: note-detail"
     ]
 }
