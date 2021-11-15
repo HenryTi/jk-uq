@@ -24,8 +24,8 @@ ID TruckMain GLOBAL(
 IDX DxTruckMain (
     id,					    -- truck main id
 	staff ID,			    -- 送货人
-	startTime TIMESTAMP,    -- 任务领用时间
-	finishTime TIMESTAMP    -- 任务结束时间
+	startTime TIMESTAMP DEFAULT NULL,    -- 任务领用时间
+	finishTime TIMESTAMP DEFAULT NULL    -- 任务结束时间
 );
 
 /* 送货（排车）明细 */
@@ -36,6 +36,20 @@ ID TruckDetail GLOBAL(
     json text,
     index idx_biz(biz)
 );
+
+/* 查询待处理排车任务数量 */
+QUERY GetReadyTruckCount(
+)
+RETURNS ret (
+	warehouse ID,
+	readyTruckCount int
+) {
+    INTO ret SELECT ix as warehouse, COUNT(a.xi) as readyTruckCount
+    FROM IxPendingTruck as a
+        JOIN IxUserWarehouse as b on b.xi = a.ix
+	where b.ix = $user
+	GROUP BY a.ix;
+};
 
 /* 查询待处理排车任务 */
 QUERY GetReadyTruckTaslList(
@@ -179,13 +193,10 @@ ACT TruckArrange(
         WITH TruckDetail as a ID = TruckDetailId
             SET a.main = truckMainId, a.biz = biz, a.json = json;
         WITH DxTrucking as a ID = truckMainId;
-        WITH DxTruckMain as a ID = truckMainId SET a.staff = $user, a.startTime = $date;
+        WITH DxTruckMain as a ID = truckMainId SET a.staff = $user, a.startTime = $date, a.finishTime = NULL;
         
         -- 附加任务部分数据修改
-        VAR orderDetail ID;
-        SET orderDetail = NULL;
-        SET orderDetail = a.biz FROM DeliverDetail as a WHERE a.id = aBiz;
-        IF (orderDetail IS NULL) {
+        IF not exists ( SELECT 1 FROM DeliverDetail as a WHERE a.id = biz ) {
             WITH TruckAdditionalTask as a ID = aBiz SET a.staff = $user;
         }
         
@@ -202,29 +213,15 @@ ACT TruckArrange(
 ACT Trucked(
     truckMain ID,
     ARR detail (
-		biz ID,	-- 发货单明细id
-		quantity DEC(12,2)	-- 实际发货数
+		biz ID,	-- 发货单明细id / 附加任务id
 	)
 ){
     WITH DxTrucking ID=truckMain DEL;
 	WITH DxTruckMain ID=truckMain SET finishTime=$date;
 
     FOR detail {
-        VAR orderDetail ID, deliver ID;
-        SET orderDetail = NULL;
-        SET orderDetail = a.biz, deliver = a.main
-        FROM DeliverDetail as a
-        WHERE a.id = biz;
-
-        IF (orderDetail IS NULL) {
-            WITH truckAdditionalTask as a ID = biz
-            SET a.staff = $user, a.finishTime = $date;
-        } ELSE {
-            BUS JkDeliverBus.[deliver-done] set id = deliver;
-            BUS JkDeliverBus.[deliver-done] into detail ADD id = biz, biz = orderDetail, value = quantity;
-	        BUS JkDeliverBus.[deliver-done2] set id = deliver;	-- 补充快递单号信息
-            BUS JkDeliverBus.[deliver-done2] into detail
-		    ADD id = biz, biz = orderDetail, value = quantity, waybillNumber = '', carrier = 10, createDate = $date;
+        if not exists ( SELECT 1 FROM DeliverDetail as a WHERE a.id = biz ) {
+            WITH truckAdditionalTask as a ID = biz SET a.staff = $user, a.finishTime = $date;
         }
 	}
     TUID [$User] ID ($user) SET poke=1;
@@ -240,7 +237,6 @@ ID TruckAdditionalTask(
     creator ID,             -- 任务创建人
     requiredDate datetime,  -- 任务规定完成日期
     staff ID,               -- 任务处理人
-    scheduleDate datetime,  -- 计划安排日期
     finishTime datetime,    -- 完成时间
     sys(create)             -- 创建时间
 );
@@ -255,12 +251,11 @@ RETURNS ret(
     creator ID,
     requiredDate datetime,
     staff ID,
-    scheduleDate datetime,
     finishTime datetime,
     create datetime
 ){
     INTO ret SELECT a.id, a.contact, a.content, a.note, a.creator, a.requiredDate
-        , a.staff, a.scheduleDate, a.finishTime, a.[$create] as create
+        , a.staff, a.finishTime, a.[$create] as create
     FROM truckAdditionalTask as a
 	where a.creator = $user
 	ORDER BY a.id desc;
