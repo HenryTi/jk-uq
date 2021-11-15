@@ -354,7 +354,7 @@ ACCEPT [deliver-done] {
         SET exchangeDetailId = a.id, exchangeMainId = a.main from ExchangeDetail as a where a.id = biz;
         if(not exchangeDetailId is null){
             if not exists(select 1 from ExchangeDetailDeliver as a where a.ix = exchangeDetailId and a.xi = id) {
-                WITH DxExchangeDetail ID = exchangeDetailId SET deliverDone += value, deliverTime = $date;
+                WITH DxExchangeDetail ID = exchangeDetailId SET deliverDone += value, deliverTime = ifnull(from_unixtime($STAMP), $date);
             }
             WITH ExchangeDetailDeliver ix = exchangeDetailId xi = id set deliverDone = value, deliverTime = ifnull(from_unixtime($STAMP), $date);
 
