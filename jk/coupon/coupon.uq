@@ -81,8 +81,9 @@ returns ret (
             type = c.type,
             validityDate = c.validityDate,    --有效期
             isValid = c.isValid,              --是否有效
-            creator = c.creator
+            creator = b.xi
     from    Coupon as c
+            left join IxWebuserEmployeeCopy as b on c.creator = b.ix
     where   c.code = code;
 
     var orderX char(50);   --被使用的订单
