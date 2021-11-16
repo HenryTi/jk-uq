@@ -66,7 +66,7 @@ QUERY GetReadyCutOffList(
     cutOffType ID,
 )
 PAGE(
-	id bigint desc,
+	id bigint asc,
     orderDetail ID,
 	item ID,
 	shouldQuantity DEC(12,2),
@@ -79,8 +79,8 @@ PAGE(
         JOIN RequestDetail as b ON a.id = b.id
         JOIN Request as d ON b.main = d.id
         JOIN IxUserWarehouse as c on c.ix = $user AND c.xi = b.warehouse
-    WHERE b.warehouse = warehouse and b.cutOffType = cutOffType and a.id < $pageStart
-    ORDER BY a.id desc
+    WHERE b.warehouse = warehouse and b.cutOffType = cutOffType and a.id > $pageStart
+    ORDER BY a.id asc
 	limit $pageSize;
 };
 
