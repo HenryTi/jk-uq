@@ -197,7 +197,7 @@ ACT TruckArrange(
         
         -- 附加任务部分数据修改
         IF not exists ( SELECT 1 FROM DeliverDetail as a WHERE a.id = biz ) {
-            WITH TruckAdditionalTask as a ID = aBiz SET a.staff = $user;
+            WITH TruckAdditionalTask as a ID = aBiz SET a.staff = $user, a.state = 1;
         }
         
         -- 删除任务
@@ -221,7 +221,7 @@ ACT Trucked(
 
     FOR detail {
         if not exists ( SELECT 1 FROM DeliverDetail as a WHERE a.id = biz ) {
-            WITH truckAdditionalTask as a ID = biz SET a.staff = $user, a.finishTime = $date;
+            WITH truckAdditionalTask as a ID = biz SET a.staff = $user, a.finishTime = $date, a.state = 2;
         }
 	}
     TUID [$User] ID ($user) SET poke=1;
@@ -238,6 +238,7 @@ ID TruckAdditionalTask(
     requiredDate datetime,  -- 任务规定完成日期
     staff ID,               -- 任务处理人
     finishTime datetime,    -- 完成时间
+    state int DEFAULT 0,    -- 状态：0待处理、1正在处理、2已完成、3取消；
     sys(create)             -- 创建时间
 );
 
@@ -251,11 +252,12 @@ RETURNS ret(
     creator ID,
     requiredDate datetime,
     staff ID,
+    state int,
     finishTime datetime,
     create datetime
 ){
     INTO ret SELECT a.id, a.contact, a.content, a.note, a.creator, a.requiredDate
-        , a.staff, a.finishTime, a.[$create] as create
+        , a.staff, a.state, a.finishTime, a.[$create] as create
     FROM truckAdditionalTask as a
 	where a.creator = $user
 	ORDER BY a.id desc;
@@ -279,4 +281,14 @@ ACT AddTruckAdditionalTask(
     FOR (VAR user ID OF SELECT ix as user FROM IxUserWarehouse WHERE xi=warehouse) {
         TUID [$User] ID (user) SET poke=1;
     }
+};
+
+/* 客服取消附加任务 */
+ACT CancelTruckAdditionalTask(
+    warehouse ID,
+    truckAdditionalTask ID
+) {
+	WITH IxPendingTruck as a ix = warehouse xi = truckAdditionalTask DEL;
+    WITH TruckAdditionalTask as a ID = truckAdditionalTask
+        SET a.state = 3;
 };

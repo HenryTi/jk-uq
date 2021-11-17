@@ -70,11 +70,12 @@ PAGE(
     orderDetail ID,
 	item ID,
 	shouldQuantity DEC(12,2),
-    contact ID
+    contact ID,
+	json text
 ) {
     page SELECT a.id, b.biz as orderDetail,
         b.item, b.quantity as shouldQuantity,
-        d.contact
+        d.contact, b.json
     FROM IxPendingRequest as a
         JOIN RequestDetail as b ON a.id = b.id
         JOIN Request as d ON b.main = d.id
@@ -95,11 +96,18 @@ PAGE (
 	no CHAR(20),
 	cutter bigint,
 	create TIMESTAMP,
+	sumQuantity DEC(12,2),
+	deliverDone DEC(12,2)
 ) {
-	page SELECT a.id, a.no, a.cutter, a.[$create] as create
+	page SELECT id, no, cutter, [$create] as create
+		, SUM(c.quantity) as sumQuantity, SUM(d.deliverdone) as deliverDone
     FROM CutOffMain AS a
+		JOIN DeliverMain as b on a.id=b.cutOffMain
+		JOIN DeliverDetail as c on b.id=c.main
+		LEFT JOIN DxDeliverDetail as d ON d.id=c.id
     WHERE a.warehouse=warehouse AND a.cutter=$user and a.id < $pageStart
-    ORDER BY a.id desc
+	GROUP BY a.id, a.no, a.cutter, a.[$create]
+    ORDER BY id desc
 	limit $pageSize;
 };
 

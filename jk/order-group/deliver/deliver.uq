@@ -169,6 +169,7 @@ RETURNS detail (
 	orderDetail ID,
 	deliverMain ID,
 	item ID,
+	lotNumber CHAR(50),
 	deliverShould DEC(12,2),
 	deliverDone DEC(12,2),
 	returnDone DEC(12,2),
@@ -183,7 +184,7 @@ RETURNS detail (
 
 	INTO detail SELECT a.id, a.biz as orderDetail,
 		a.main as deliverMain,			-- DeliverMain id
-		a.item, a.quantity as deliverShould, b.deliverDone, b.returnDone, a.json as content
+		a.item, a.lotNumber, a.quantity as deliverShould, b.deliverDone, b.returnDone, a.json as content
 		FROM DeliverDetail as a
 			LEFT JOIN DxDeliverDetail as b ON b.id = a.id
 		WHERE a.main = deliver;
