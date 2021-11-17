@@ -132,7 +132,7 @@ BUS couponBus.getMatchedCredits as q into tb {
             , tradeType = tradeType, createDate = createDate;
     }
 
-    if(buyerAccount <> ifnull(lCustomerAccount, 0) or quantity <> ifnull(lQuantity, 0) or abs(price - lPrice) > 0.001
+    if(buyerAccount <> ifnull(lCustomerAccount, 0) or quantity <> ifnull(lQuantity, 0) or abs(ifnull(price, 0) - ifnull(lPrice, 0)) > 0.001
     or $importing = 1){
         BUS JkOrderBus.order STAMP createDate;
         BUS JkOrderBus.order SET id=orderMainId, no=orderId, customerAccount = buyerAccount, seller = seller; -- TODO: 缺少Contact
@@ -144,7 +144,7 @@ BUS couponBus.getMatchedCredits as q into tb {
                     , price = price
                     , amount = quantity*price;  -- TODO:缺少lotNumber等
     }
-    if(abs(lBottomPrice - bottomPrice) > 0.001 or abs(lPrice - price) > 0.001 or $importing = 1){
+    if(abs(ifnull(lBottomPrice, 0) - ifnull(bottomPrice, 0)) > 0.001 or abs(ifnull(lPrice, 0) - ifnull(price, 0)) > 0.001 or $importing = 1){
         -- cost的计算方法： 提成c = (price - cost) * 0.08 = max(price - bottomPrice, price * 0.08) * 0.08;
         -- 所以price - cost = max(price - bottomPrice, price * 0.08) => cost = price - max(price - bottomPrice, price * 0.08) =>
         -- cost = min(bottomPrice, price * (1-0.08)) 
@@ -155,6 +155,10 @@ BUS couponBus.getMatchedCredits as q into tb {
         BUS JkOrderBus.[order-sale-cost] set order = orderMainId;
         BUS JkOrderBus.[order-sale-cost] into [detail]
             ADD [order-detail] = orderDetailId, [cost] = specCost;
+
+        BUS JkOrderBus.[order-sale-margin] set order = orderMainId;
+        BUS JkOrderBus.[order-sale-margin] into [detail]
+            ADD [orderdetail] = orderDetailId, [value] = (price - specCost) / (1 + taxRate);
     }
 }
 ACCEPT returnChanged {
