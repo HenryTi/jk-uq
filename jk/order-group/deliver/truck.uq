@@ -1,0 +1,294 @@
+/* 送货排车任务 */
+IX IxPendingTruck (
+    ix, -- Warehouse
+    xi, -- deliver detail id,
+    contact ID,
+    json text
+);
+
+/* 进行中的送货 */
+IDX DxTrucking (
+    id,
+);
+
+/* 送货（排车）单 */
+ID TruckMain GLOBAL(
+    id,
+    KEY no,
+    contact ID,
+	warehouse ID,
+	sys(create)
+);
+
+/* 送货（排车）单扩展信息 */
+IDX DxTruckMain (
+    id,					    -- truck main id
+	staff ID,			    -- 送货人
+	startTime TIMESTAMP DEFAULT NULL,    -- 任务领用时间
+	finishTime TIMESTAMP DEFAULT NULL    -- 任务结束时间
+);
+
+/* 送货（排车）明细 */
+ID TruckDetail GLOBAL(
+    id,
+    main ID TruckMain,    -- TruckMain id
+    biz ID,
+    json text,
+    index idx_biz(biz)
+);
+
+/* 查询待处理排车任务数量 */
+QUERY GetReadyTruckCount(
+)
+RETURNS ret (
+	warehouse ID,
+	readyTruckCount int
+) {
+    INTO ret SELECT ix as warehouse, COUNT(a.xi) as readyTruckCount
+    FROM IxPendingTruck as a
+        JOIN IxUserWarehouse as b on b.xi = a.ix
+	where b.ix = $user
+	GROUP BY a.ix;
+};
+
+/* 查询待处理排车任务 */
+QUERY GetReadyTruckTaslList(
+    warehouse ID
+)
+RETURNS ret(
+    warehouse ID,
+    deliverDetail ID,
+    contact ID,
+    json text
+){
+    INTO ret SELECT a.ix as warehouse, a.xi as deliverDetail, a.contact, a.json
+    FROM IxPendingTruck as a
+        JOIN IxUserWarehouse as b on b.xi = a.ix
+	where b.ix = $user and a.ix = warehouse
+	ORDER BY b.xi;
+};
+
+/* 查询送货单历史 */
+QUERY GetTruckHistoryList(
+)
+RETURNS ret(
+    warehouse ID,
+	truckMain ID,
+	no CHAR(20),
+    contact ID,
+	staff ID,
+){
+    INTO ret SELECT a.warehouse, a.id AS truckMain, a.no, a.contact, b.staff
+		FROM TruckMain as a
+			JOIN DxTruckMain as b ON b.id=a.id
+		WHERE b.staff=$user
+            AND NOT exists ( SELECT c.id FROM DxTrucking as c WHERE c.id = a.id )
+        order by a.id desc;
+};
+
+/* 库房送货表列表 */
+QUERY WarehouseTruckMain (
+)
+RETURNS ret (
+	warehouse ID,
+	truckMain ID,
+	no CHAR(20),
+    contact ID,
+	staff ID,
+) {
+	INTO ret SELECT b.warehouse, b.id AS truckMain, b.no, b.contact, d.staff
+		FROM IxUserWarehouse as a
+			JOIN TruckMain as b ON a.xi=b.warehouse
+			JOIN DxTrucking as c on c.id=b.id
+			LEFT JOIN DxTruckMain as d ON b.id=d.id
+		WHERE a.ix=$user
+        ORDER by b.id desc;
+};
+
+/* 出车单详细信息 */
+QUERY GetTruckMain (
+    truckMain ID
+)
+RETURNS main (
+	truckMain ID,
+	no CHAR(20),
+    contact ID,
+    warehouse ID,
+	staff ID,
+    trucking ID
+)
+RETURNS detail (
+    truckDetail ID,
+    biz ID,
+	json text
+) {
+	INTO main SELECT a.id AS truckMain, a.no, a.contact, a.warehouse, b.staff, c.id as trucking
+		FROM TruckMain as a
+			LEFT JOIN DxTruckMain as b ON a.id=b.id
+            LEFT JOIN DxTrucking as c on c.id=a.id
+		WHERE a.id = truckMain;
+
+    INTO detail SELECT a.id AS truckDetail, a.biz, a.json
+		FROM TruckDetail as a
+		WHERE a.main = truckMain;
+};
+
+/* 添加排车任务 */
+ACT AddTruck(
+    warehouse ID,
+    biz ID,
+    contact ID,
+    json text
+) {
+	WITH IxPendingTruck as a ix = warehouse xi = biz SET a.contact = contact, a.json = json;
+};
+
+/* 排车 */
+ACT TruckArrange(
+    aWarehouse ID,
+    ARR detail (
+		aBiz ID
+	)
+){
+    -- 1、操作权限检查
+    IF NOT exists(SELECT ix FROM IxUserWarehouse WHERE ix=$user AND xi = aWarehouse) {
+        RETURN;
+    }
+
+    -- 2、检测是否有数据
+    if not exists (select 1 from IxPendingTruck as a where a.ix = aWarehouse ) {
+        RETURN; 
+    }
+
+    -- 3、生成发货单 并删除已处理完的数据
+    LOG 'TruckArrange' SUBJECT 'start';
+	TABLE tblTruckArrange(key warehouse ID, key contact ID, truckMain ID);
+
+    FOR detail {
+        -- 循环勾选的数据
+        VAR warehouse ID, contact ID, biz ID, json text;
+		SET warehouse = NULL;
+        SET warehouse = a.ix, biz = a.xi, contact = a.contact, json = a.json
+        FROM IxPendingTruck as a
+        WHERE a.ix = aWarehouse and a.xi = aBiz;
+
+		IF warehouse IS NULL {
+			BREAK;
+		}
+
+        -- 从临时表中查询是否存在，不存在则生成新送货单
+        VAR truckMainId ID;
+        SET truckMainId = NULL;
+        SET truckMainId = a.truckMain FROM tblTruckArrange as a
+        WHERE a.warehouse = warehouse and a.contact = contact;
+
+        IF truckMainId IS NULL{
+            SET truckMainId = ID(TruckMain new, NO(TruckMain));
+            WITH TruckMain as a ID = truckMainId 
+                SET a.warehouse = aWarehouse, a.contact = contact;
+            INTO tblTruckArrange SELECT warehouse, contact, truckMainId as truckMain;
+        }
+
+        VAR TruckDetailId ID = ID(TruckDetail new);
+        WITH TruckDetail as a ID = TruckDetailId
+            SET a.main = truckMainId, a.biz = biz, a.json = json;
+        WITH DxTrucking as a ID = truckMainId;
+        WITH DxTruckMain as a ID = truckMainId SET a.staff = $user, a.startTime = $date, a.finishTime = NULL;
+        
+        -- 附加任务部分数据修改
+        IF not exists ( SELECT 1 FROM DeliverDetail as a WHERE a.id = biz ) {
+            WITH TruckAdditionalTask as a ID = aBiz SET a.staff = $user, a.state = 1;
+        }
+        
+        -- 删除任务
+        DELETE a FROM IxPendingTruck as a WHERE a.ix = warehouse AND a.xi = biz AND a.contact = contact AND a.json = json;
+    }
+    LOG 'TruckArrange' SUBJECT 'end';
+	FOR (VAR user ID OF SELECT ix as user FROM IxUserWarehouse WHERE xi=aWarehouse) {
+            TUID [$User] ID (user) SET poke=1;
+        }
+};
+
+/* 送货完成 */
+ACT Trucked(
+    truckMain ID,
+    ARR detail (
+		biz ID,	-- 发货单明细id / 附加任务id
+	)
+){
+    WITH DxTrucking ID=truckMain DEL;
+	WITH DxTruckMain ID=truckMain SET finishTime=$date;
+
+    FOR detail {
+        if not exists ( SELECT 1 FROM DeliverDetail as a WHERE a.id = biz ) {
+            WITH truckAdditionalTask as a ID = biz SET a.staff = $user, a.finishTime = $date, a.state = 2;
+        }
+	}
+    TUID [$User] ID ($user) SET poke=1;
+};
+
+
+/* 排车附加任务 */
+ID TruckAdditionalTask(
+    id,
+    contact ID,             -- contact id
+    content CHAR(500),      -- 附加任务说明
+    note CHAR(200),         -- 备注
+    creator ID,             -- 任务创建人
+    requiredDate datetime,  -- 任务规定完成日期
+    staff ID,               -- 任务处理人
+    finishTime datetime,    -- 完成时间
+    state int DEFAULT 0,    -- 状态：0待处理、1正在处理、2已完成、3取消；
+    sys(create)             -- 创建时间
+);
+
+/* 查询排车附加任务列表(待修改分页) */
+QUERY GetTruckAdditionalTask()
+RETURNS ret(
+    id ID,
+    contact ID,
+    content CHAR(500),
+    note CHAR(200),
+    creator ID,
+    requiredDate datetime,
+    staff ID,
+    state int,
+    finishTime datetime,
+    create datetime
+){
+    INTO ret SELECT a.id, a.contact, a.content, a.note, a.creator, a.requiredDate
+        , a.staff, a.state, a.finishTime, a.[$create] as create
+    FROM truckAdditionalTask as a
+	where a.creator = $user
+	ORDER BY a.id desc;
+};
+
+/* 添加附加任务,同时写入后勤排车任务表 */
+ACT AddTruckAdditionalTask(
+    warehouse ID,
+    contact ID,             -- contact id
+    content CHAR(500),      -- 附加任务说明
+    note CHAR(200),         -- 备注
+    creator ID,             -- 任务创建人
+    requiredDate datetime,  -- 任务规定完成日期
+    json text
+){
+    VAR truckAdditionalTaskID ID;
+    SET truckAdditionalTaskID = ID(TruckAdditionalTask new);
+    WITH TruckAdditionalTask as a ID = truckAdditionalTaskID
+        SET a.contact = contact, a.content = content, a.note = note, a.creator = creator, a.requiredDate = requiredDate;
+	WITH IxPendingTruck as a ix = warehouse xi = truckAdditionalTaskID SET a.contact = contact, a.json = json;
+    FOR (VAR user ID OF SELECT ix as user FROM IxUserWarehouse WHERE xi=warehouse) {
+        TUID [$User] ID (user) SET poke=1;
+    }
+};
+
+/* 客服取消附加任务 */
+ACT CancelTruckAdditionalTask(
+    warehouse ID,
+    truckAdditionalTask ID
+) {
+	WITH IxPendingTruck as a ix = warehouse xi = truckAdditionalTask DEL;
+    WITH TruckAdditionalTask as a ID = truckAdditionalTask
+        SET a.state = 3;
+};

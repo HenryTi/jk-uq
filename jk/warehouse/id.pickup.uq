@@ -3,8 +3,8 @@ ID Pickup GLOBAL (
 	KEY no,
 	warehouse ID,
 	picker ID,				-- 拣货人
-	startTime TIMESTAMP,
-	finishTime TIMESTAMP,
+	startTime TIMESTAMP DEFAULT NULL,
+	finishTime TIMESTAMP DEFAULT NULL,
 	sys(create)
 );
 
@@ -162,6 +162,14 @@ ACT Picking (
 	TUID [$User] ID ($user) SET poke=1;
 };
 
+/* 取消任务领取 */
+ACT CancelPicking(
+	pickup ID,
+) {
+	WITH Pickup ID=pickup SET picker=null, startTime=null, finishTime=null;
+	TUID [$User] ID ($user) SET poke=1;
+};
+
 QUERY WarehousePickups(
 	-- warehouse ID,
 )
@@ -179,6 +187,26 @@ RETURNS ret (
 			JOIN Pickup as b ON a.xi=b.warehouse
 			JOIN DxPicking as c ON c.id=b.id
 		WHERE a.ix=$user;
+};
+
+/* 查询拣货单历史 */
+/* 非必要不增加，增加此query是因为自带的查询无法根据某一项筛选，查询量大，以及分页问题 */
+QUERY GetPickupHistory(
+	warehouse ID
+)
+PAGE (
+	id bigint desc,
+	pickup ID,
+	no CHAR(20),
+	finishTime TIMESTAMP,
+	picker ID,
+) {
+	page SELECT a.id, a.id as pickup, a.no, a.finishTime, a.picker
+    FROM Pickup as a
+    WHERE a.warehouse=warehouse AND a.picker=$user AND a.id < $pageStart
+		AND NOT exists ( SELECT b.id FROM DxPicking as b WHERE b.id = a.id )
+    ORDER BY a.id desc
+	limit $pageSize;
 };
 
 QUERY GetPickup(
@@ -218,6 +246,7 @@ RETURNS detail (
 		WHERE a.main=pickup;
 };
 
+/* 单条拣货完成 */
 ACT PickedSingle(
 	pickupDetail ID,
 	quantity dec(18, 4)
@@ -225,6 +254,14 @@ ACT PickedSingle(
 	WITH pickupDetail ID=pickupDetail SET pickDone=quantity, pickState=1;
 };
 
+/* 取消单条拣货完成 */
+ACT CancelSingle(
+	pickupDetail ID
+){
+	WITH pickupDetail ID=pickupDetail SET pickDone=0, pickState=0;
+};
+
+/* 拣货完成（所有） */
 ACT Picked (
 	pickup ID,
 	ARR detail (
@@ -235,11 +272,14 @@ ACT Picked (
 ) {
 	WITH DxPicking ID=pickup DEL;
 	WITH Pickup ID=pickup SET finishTime=$date;
-    BUS JkDeliverBus.[pickup-done] SET id = pickup, operator = 1208, stamp = unix_timestamp(now());
+    BUS JkDeliverBus.[pickup-done] SET id = pickup;
+    BUS JkDeliverBus.[pickup-performance] SET id = pickup, operator = 1208, stamp = unix_timestamp(now());
 	FOR detail {
 		-- todo：检查出库数与拣货数不一致的话，生成退货
 		-- 拣货完成
 		BUS JkDeliverBus.[pickup-done] into detail ADD id = pickupDetail, biz = biz, value = quantity;
+		BUS JkDeliverBus.[pickup-performance] into detail 
+            ADD id = pickupDetail, biz = biz, value = quantity * 8 / 700;
 	}
 	TUID [$User] ID ($user) SET poke=1;
 };

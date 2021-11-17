@@ -19,8 +19,8 @@ IX CutOffProcessing (
 IDX DxCutOffMain (
     id,						-- CutOffMain id
     staff ID,				-- 理货人
-    startTime TIMESTAMP,
-    finishTime TIMESTAMP
+    startTime TIMESTAMP DEFAULT NULL,
+    finishTime TIMESTAMP DEFAULT NULL
 );
 
 -- 正在处理中的理货单
@@ -66,21 +66,22 @@ QUERY GetReadyCutOffList(
     cutOffType ID,
 )
 PAGE(
-	id bigint desc,
+	id bigint asc,
     orderDetail ID,
 	item ID,
 	shouldQuantity DEC(12,2),
-    customerAccount ID
+    contact ID,
+	json text
 ) {
     page SELECT a.id, b.biz as orderDetail,
         b.item, b.quantity as shouldQuantity,
-        d.customerAccount
+        d.contact, b.json
     FROM IxPendingRequest as a
         JOIN RequestDetail as b ON a.id = b.id
         JOIN Request as d ON b.main = d.id
         JOIN IxUserWarehouse as c on c.ix = $user AND c.xi = b.warehouse
-    WHERE b.warehouse = warehouse and b.cutOffType = cutOffType and a.id < $pageStart
-    ORDER BY a.id desc
+    WHERE b.warehouse = warehouse and b.cutOffType = cutOffType and a.id > $pageStart
+    ORDER BY a.id asc
 	limit $pageSize;
 };
 
@@ -95,11 +96,18 @@ PAGE (
 	no CHAR(20),
 	cutter bigint,
 	create TIMESTAMP,
+	sumQuantity DEC(12,2),
+	deliverDone DEC(12,2)
 ) {
-	page SELECT a.id, a.no, a.cutter, a.[$create] as create
+	page SELECT id, no, cutter, [$create] as create
+		, SUM(c.quantity) as sumQuantity, SUM(d.deliverdone) as deliverDone
     FROM CutOffMain AS a
+		JOIN DeliverMain as b on a.id=b.cutOffMain
+		JOIN DeliverDetail as c on b.id=c.main
+		LEFT JOIN DxDeliverDetail as d ON d.id=c.id
     WHERE a.warehouse=warehouse AND a.cutter=$user and a.id < $pageStart
-    ORDER BY a.id desc
+	GROUP BY a.id, a.no, a.cutter, a.[$create]
+    ORDER BY id desc
 	limit $pageSize;
 };
 
@@ -315,6 +323,27 @@ RETURNS ret (
     WHERE c.ix = $user;
 };
 
+/* 查询理货历史 */
+/* 非必要不增加，增加此query是因为自带的查询无法根据某一项筛选，查询量大，以及分页问题 */
+QUERY GetCutOffHistory(
+	warehouse ID
+)
+PAGE (
+	id bigint desc,
+	cutOffMain ID,
+	no CHAR(20),
+	finishTime TIMESTAMP,
+	staff ID,
+) {
+	page SELECT a.id, a.id as cutOffMain, a.no, b.finishTime, b.staff
+    FROM cutOffMain as a
+		JOIN DxCutOffMain as b on b.id=a.id
+    WHERE a.warehouse=warehouse AND b.staff=$user AND a.id < $pageStart
+		AND NOT exists ( SELECT c.id FROM Talling as c WHERE c.id = a.id )
+    ORDER BY a.id desc
+	limit $pageSize;
+};
+
 /* 获取截单表详细信息 */
 QUERY GetCutOffMain(
     cutOffMain ID
@@ -324,7 +353,8 @@ RETURNS main (
 	no varchar(20),
 	warehouse ID,
 	cutter ID,
-	staff ID
+	staff ID,
+	finishTime TIMESTAMP
 )
 RETURNS detail (
 	deliverMain ID,
@@ -343,7 +373,7 @@ RETURNS detail (
 	showPrice int,
 	content text
 ) {
-	INTO main SELECT a.id, a.no, a.warehouse, a.cutter, b.staff
+	INTO main SELECT a.id, a.no, a.warehouse, a.cutter, b.staff, b.finishTime
 		FROM CutOffMain as a
 			LEFT JOIN DxCutOffMain as b ON a.id=b.id
 		WHERE a.id=cutOffMain;
@@ -368,6 +398,14 @@ ACT Tallying (
 	TUID [$User] ID ($user) SET poke=1;
 };
 
+/* 取消理货任务 */
+ACT CancelTallying(
+	cutOffMain ID,
+) {
+	WITH DxCutOffMain ID=cutOffMain SET staff=null, startTime=null, finishTime=null;
+	
+};
+
 /* 单个理货完成 */
 ACT TallyDoneSingle(
 	deliverMain ID,
@@ -376,6 +414,15 @@ ACT TallyDoneSingle(
 ){
 	WITH DxDeliverDetail as a ID = deliverDetail SET a.tallyDone = quantity, a.tallyState = 1;
 	WITH DxDeliverMain as a ID = deliverMain SET a.pickRows=a.pickRows+1;
+};
+
+/* 单个理货取消 */
+ACT TallyCancelSingle(
+	deliverMain ID,
+	deliverDetail ID
+){
+	WITH DxDeliverDetail as a ID = deliverDetail SET a.tallyDone = 0, a.tallyState = 0;
+	WITH DxDeliverMain as a ID = deliverMain SET a.pickRows=a.pickRows-1;
 };
 
 /* 整体理货完成 */
@@ -396,6 +443,7 @@ ACT UpdateDeliverCarrier(
 	carrier ID
 ){
 	WITH DxDeliverMain as a ID = deliverMain SET a.carrier = carrier;
+	-- 发bus：truck
 };
 
 /* 修改发货单发运单号 */

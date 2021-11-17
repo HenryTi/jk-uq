@@ -22,8 +22,8 @@ IDX DxDeliverMain (
     waybillNumber char(50),                 -- 运单号
     deliverTime TIMESTAMP DEFAULT NULL,		-- 发运时间,
 	staff ID,								-- 发运人
-	startTime TIMESTAMP,					-- 任务领用时间
-	finishTime TIMESTAMP					-- 任务结束时间
+	startTime TIMESTAMP DEFAULT NULL,		-- 任务领用时间
+	finishTime TIMESTAMP DEFAULT NULL		-- 任务结束时间
 );
 
 /*
@@ -68,6 +68,13 @@ ACT Delivering (
 	TUID [$User] ID ($user) SET poke=1;
 };
 
+/* 取消任务领取 */
+ACT CancelDelivering(
+	deliver ID,
+) {
+	WITH DxDeliverMain ID=deliver SET staff=null, startTime=null, finishTime=null;
+};
+
 ACT Delivered(
 	deliver ID,
 	ARR detail (
@@ -77,7 +84,7 @@ ACT Delivered(
 	)
 ){
 	WITH DxDelivering ID=deliver DEL;
-	WITH DxDeliverMain ID=deliver SET finishTime=$date;
+	WITH DxDeliverMain ID=deliver SET finishTime=$date, deliverTime=$date;
 	BUS JkDeliverBus.[deliver-done] set id = deliver;
 	BUS JkDeliverBus.[deliver-done2] set id = deliver;	-- 补充快递单号信息
 	VAR carrier ID, waybillNumber varchar(50);
@@ -118,6 +125,31 @@ RETURNS ret (
 		WHERE a.ix=$user;
 };
 
+/* 查询发货历史 */
+/* 非必要不增加，增加此query是因为自带的查询无法根据某一项筛选，查询量大，以及分页问题 */
+QUERY GetDeliverHistory(
+	warehouse ID
+)
+PAGE (
+	id bigint desc,
+	deliverMain ID,
+	no CHAR(20),
+	cutOffMain CHAR(20),
+	traynumber int,
+	finishTime TIMESTAMP,
+	staff ID
+) {
+	page SELECT a.id, a.id as deliverMain, a.no, c.no as cutOffMain,
+		a.traynumber, b.finishTime, b.staff
+    FROM DeliverMain as a
+		JOIN DxDeliverMain as b ON b.id=a.id
+		LEFT JOIN CutOffMain AS c ON c.id=a.cutoffmain
+    WHERE a.warehouse=warehouse AND b.staff=$user AND a.id < $pageStart
+		AND NOT exists ( SELECT d.id FROM DxDelivering as d WHERE d.id = a.id )
+    ORDER BY a.id desc
+	limit $pageSize;
+};
+
 QUERY GetDeliver (
 	deliver ID
 )
@@ -128,15 +160,16 @@ RETURNS main (
 	contact ID,
 	warehouse ID,
 	staff ID,
-	rows SMALLINT DEFAULT 0,
-	pickRows SMALLINT DEFAULT 0,
-	deliverTime TIMESTAMP DEFAULT NULL
+	rows SMALLINT,
+	pickRows SMALLINT,
+	deliverTime TIMESTAMP
 )
 RETURNS detail (
 	id ID,	--# [DeliverDetail],
 	orderDetail ID,
 	deliverMain ID,
 	item ID,
+	lotNumber CHAR(50),
 	deliverShould DEC(12,2),
 	deliverDone DEC(12,2),
 	returnDone DEC(12,2),
@@ -151,7 +184,7 @@ RETURNS detail (
 
 	INTO detail SELECT a.id, a.biz as orderDetail,
 		a.main as deliverMain,			-- DeliverMain id
-		a.item, a.quantity as deliverShould, b.deliverDone, b.returnDone, a.json as content
+		a.item, a.lotNumber, a.quantity as deliverShould, b.deliverDone, b.returnDone, a.json as content
 		FROM DeliverDetail as a
 			LEFT JOIN DxDeliverDetail as b ON b.id = a.id
 		WHERE a.main = deliver;
