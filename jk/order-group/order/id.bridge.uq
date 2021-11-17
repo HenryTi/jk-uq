@@ -114,6 +114,11 @@ BUS couponBus.getMatchedCredits as q into tb {
             bus couponBus.[order-coupon] set id = orderMainId, couponUser = endUserId, coupon = creditsId;
             bus couponBus.[order-coupon] into detail add id = orderDetailId;
         }
+    }else{
+        -- 导数据时，使用订单上发过来的salesman（因为customerBound中无历史绑定数据)
+        BUS JkOrderBus.[order-bound-staff-sales] set order = orderMainId;
+        BUS JkOrderBus.[order-bound-staff-sales] into [to] 
+            ADD [id] = salesman, [bound-type] = 'assign';
     }
 
     if(quantity > 0 and $importing = 0) {
@@ -127,7 +132,7 @@ BUS couponBus.getMatchedCredits as q into tb {
             , tradeType = tradeType, createDate = createDate;
     }
 
-    if(buyerAccount <> ifnull(lCustomerAccount, 0) or quantity <> ifnull(lQuantity, 0) or price <> ifnull(lPrice, 0)
+    if(buyerAccount <> ifnull(lCustomerAccount, 0) or quantity <> ifnull(lQuantity, 0) or abs(price - lPrice) > 0.001
     or $importing = 1){
         BUS JkOrderBus.order STAMP createDate;
         BUS JkOrderBus.order SET id=orderMainId, no=orderId, customerAccount = buyerAccount, seller = seller; -- TODO: 缺少Contact
@@ -139,9 +144,7 @@ BUS couponBus.getMatchedCredits as q into tb {
                     , price = price
                     , amount = quantity*price;  -- TODO:缺少lotNumber等
     }
-    if(ifnull(lBottomPrice, 0) - ifnull(bottomPrice, 0) > 0.001 or ifnull(lBottomPrice, 0) - ifnull(bottomPrice, 0) < -0.001
-    or ifnull(lPrice, 0) - ifnull(price, 0) > 0.001 or ifnull(lPrice, 0) - ifnull(price, 0) < -0.001
-    or $importing = 1){
+    if(abs(lBottomPrice - bottomPrice) > 0.001 or abs(lPrice - price) > 0.001 or $importing = 1){
         -- cost的计算方法： 提成c = (price - cost) * 0.08 = max(price - bottomPrice, price * 0.08) * 0.08;
         -- 所以price - cost = max(price - bottomPrice, price * 0.08) => cost = price - max(price - bottomPrice, price * 0.08) =>
         -- cost = min(bottomPrice, price * (1-0.08)) 
