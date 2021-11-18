@@ -189,7 +189,7 @@ RETURNS main (
 		}
 	}
 	LOG 'CutOff' SUBJECT 'end';
-	WITH Talling as a id = cutOffMain;
+	WITH DxTalling as a id = cutOffMain;
     INTO main SELECT cutOffMain as id, cutOffMainNo as no;
 	FOR (VAR user ID OF SELECT ix as user FROM IxUserWarehouse WHERE xi=aWarehouse) {
             TUID [$User] ID (user) SET poke=1;
@@ -281,7 +281,7 @@ RETURNS main (
 		DELETE a FROM IxPendingRequest as a WHERE a.id = requestDetail;
 	}
 	LOG 'CutOff' SUBJECT 'end';
-	WITH Talling as a id = cutOffMain;
+	WITH DxTalling as a id = cutOffMain;
     INTO main SELECT cutOffMain as id, cutOffMainNo as no;
 	FOR (VAR user ID OF SELECT ix as user FROM IxUserWarehouse WHERE xi=aWarehouse) {
             TUID [$User] ID (user) SET poke=1;

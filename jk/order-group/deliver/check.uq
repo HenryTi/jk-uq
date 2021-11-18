@@ -1,0 +1,34 @@
+-- 正在处理中的验货单
+IDX DxChecking (
+    id
+);
+
+/* 验单货扩展信息 */
+IDX DxCheckMain (
+    id,						-- CutOffMain id
+    staff ID,				-- 验货人
+    startTime TIMESTAMP DEFAULT NULL,
+    finishTime TIMESTAMP DEFAULT NULL
+);
+
+/*
+ * 查询待验货列表 
+ */
+QUERY WarehouseChecks (
+)
+RETURNS ret (
+	warehouse ID,
+	cutOffMain ID,
+	no CHAR(20),
+    staff ID,
+	create TIMESTAMP
+) {
+    INTO ret SELECT b.warehouse
+        , b.id as cutOffMain, b.no, d.staff, b.[$create] as create
+    FROM DxChecking as a
+        join cutOffMain as b on a.id = b.id
+        join IxUserWarehouse as c on c.xi = b.warehouse
+		left join DxCutOffMain as d on d.id=b.id
+    WHERE c.ix = $user
+    ORDER BY a.id;
+};

@@ -1,5 +1,5 @@
 -- 正在处理中的理货单
-IDX Talling (
+IDX DxTalling (
     id,
 );
 
@@ -18,11 +18,12 @@ RETURNS ret (
     INTO ret SELECT b.warehouse
         , b.id as cutOffMain, b.no
         , b.[$create] as create, d.staff
-    FROM Talling as a
+    FROM DxTalling as a
         join cutOffMain as b on a.id = b.id
         join IxUserWarehouse as c on c.xi = b.warehouse
 		left join DxCutOffMain as d on d.id=b.id
-    WHERE c.ix = $user;
+    WHERE c.ix = $user
+    ORDER BY a.id;
 };
 
 /* 查询理货历史 */
@@ -41,7 +42,7 @@ PAGE (
     FROM cutOffMain as a
 		JOIN DxCutOffMain as b on b.id=a.id
     WHERE a.warehouse=warehouse AND b.staff=$user AND a.id < $pageStart
-		AND NOT exists ( SELECT c.id FROM Talling as c WHERE c.id = a.id )
+		AND NOT exists ( SELECT c.id FROM DxTalling as c WHERE c.id = a.id )
     ORDER BY a.id desc
 	limit $pageSize;
 };
@@ -89,6 +90,6 @@ ACT TallyDone (
 	cutOffMain ID,
 ){
 	WITH DxCutOffMain ID=cutOffMain SET finishTime=$date;
-	WITH Talling id = cutOffMain DEL;
+	WITH DxTalling id = cutOffMain DEL;
 	TUID [$User] ID ($user) SET poke=1;
 };
