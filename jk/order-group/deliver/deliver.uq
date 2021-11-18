@@ -100,7 +100,7 @@ ACT Delivered(
 	TUID [$User] ID ($user) SET poke=1;
 };
 
-QUERY WarehouseDeliverMain (
+QUERY WarehouseDelivers (
 )
 RETURNS ret (
 	warehouse ID,
@@ -109,14 +109,11 @@ RETURNS ret (
 	cutOffMain CHAR(20),
 	traynumber int,
 	customerAccount ID,
-	create TIMESTAMP,
-	rows SMALLINT,
-	pickRows SMALLINT,
 	staff ID,
 ) {
 	INTO ret SELECT b.warehouse
 		, b.id as deliverMain, b.no, e.no as cutOffMain, b.traynumber
-		, b.customerAccount, b.[$create] as create, d.rows, d.pickRows, d.staff
+		, b.customerAccount, d.staff
 		FROM IxUserWarehouse as a
 			JOIN DeliverMain as b ON a.xi=b.warehouse
 			JOIN DxDelivering as c on c.id=b.id

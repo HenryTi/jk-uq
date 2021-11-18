@@ -87,7 +87,7 @@ RETURNS ret(
 };
 
 /* 库房送货表列表 */
-QUERY WarehouseTruckMain (
+QUERY WarehouseTrucks (
 )
 RETURNS ret (
 	warehouse ID,

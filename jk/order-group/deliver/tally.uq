@@ -1,0 +1,94 @@
+-- 正在处理中的理货单
+IDX Talling (
+    id,
+);
+
+/*
+ * 查询待理货列表 
+ */
+QUERY WarehouseTallys (
+)
+RETURNS ret (
+	warehouse ID,
+	cutOffMain ID,
+	no CHAR(20),
+	create TIMESTAMP,
+	staff ID,
+) {
+    INTO ret SELECT b.warehouse
+        , b.id as cutOffMain, b.no
+        , b.[$create] as create, d.staff
+    FROM Talling as a
+        join cutOffMain as b on a.id = b.id
+        join IxUserWarehouse as c on c.xi = b.warehouse
+		left join DxCutOffMain as d on d.id=b.id
+    WHERE c.ix = $user;
+};
+
+/* 查询理货历史 */
+/* 非必要不增加，增加此query是因为自带的查询无法根据某一项筛选，查询量大，以及分页问题 */
+QUERY GetCutOffHistory(
+	warehouse ID
+)
+PAGE (
+	id bigint desc,
+	cutOffMain ID,
+	no CHAR(20),
+	finishTime TIMESTAMP,
+	staff ID,
+) {
+	page SELECT a.id, a.id as cutOffMain, a.no, b.finishTime, b.staff
+    FROM cutOffMain as a
+		JOIN DxCutOffMain as b on b.id=a.id
+    WHERE a.warehouse=warehouse AND b.staff=$user AND a.id < $pageStart
+		AND NOT exists ( SELECT c.id FROM Talling as c WHERE c.id = a.id )
+    ORDER BY a.id desc
+	limit $pageSize;
+};
+
+
+/* 开始理货 */
+ACT Tallying (
+	cutOffMain ID,
+) {
+	WITH DxCutOffMain ID=cutOffMain SET staff=$user, startTime=$date, finishTime=null;
+	TUID [$User] ID ($user) SET poke=1;
+};
+
+/* 取消理货任务 */
+ACT CancelTallying(
+	cutOffMain ID,
+) {
+	WITH DxCutOffMain ID=cutOffMain SET staff=null, startTime=null, finishTime=null;
+	
+};
+
+/* 单个理货完成 */
+ACT TallyDoneSingle(
+	deliverMain ID,
+	deliverDetail ID,
+	quantity DEC(12,2)
+){
+	WITH DxDeliverDetail as a ID = deliverDetail SET a.tallyDone = quantity, a.tallyState = 1;
+	WITH DxDeliverMain as a ID = deliverMain SET a.pickRows=a.pickRows+1;
+};
+
+/* 单个理货取消 */
+ACT TallyCancelSingle(
+	deliverMain ID,
+	deliverDetail ID
+){
+	WITH DxDeliverDetail as a ID = deliverDetail SET a.tallyDone = 0, a.tallyState = 0;
+	WITH DxDeliverMain as a ID = deliverMain SET a.pickRows=a.pickRows-1;
+};
+
+/* 整体理货完成 */
+ACT TallyDone (
+	-- warehouse ID,
+	-- cutOffType ID
+	cutOffMain ID,
+){
+	WITH DxCutOffMain ID=cutOffMain SET finishTime=$date;
+	WITH Talling id = cutOffMain DEL;
+	TUID [$User] ID ($user) SET poke=1;
+};
