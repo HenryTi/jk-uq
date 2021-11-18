@@ -1,3 +1,4 @@
+-- Domain是什么？ 可能是徐蓉想搞的另外一套研究领域，但是没搞成
 OPEN TUID Domain (
     id,
     main name char(200),
@@ -10,7 +11,8 @@ MAP CustomerDomain (
     key customer ID Customer,
     key domain ID Domain
 );
-  
+
+-- 这个我怀疑是“客户职位”，但是这个名字和joint里的配置写的不一致，后者叫Position  
 TUID Post (
     id,
     main name char(200),
@@ -34,7 +36,8 @@ MAP CustomerRelatedProducts(
     key product ID  ProductX,
     sort int 
 );
- 
+
+-- 研究领域 
 TUID Research (
     id,
     main name char(200),
