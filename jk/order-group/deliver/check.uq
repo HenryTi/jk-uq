@@ -1,4 +1,4 @@
--- 正在处理中的验货单
+/* 正在处理中的验货单 */
 IDX DxChecking (
     id
 );
@@ -23,12 +23,122 @@ RETURNS ret (
     staff ID,
 	create TIMESTAMP
 ) {
-    INTO ret SELECT b.warehouse
-        , b.id as cutOffMain, b.no, d.staff, b.[$create] as create
+    INTO ret SELECT b.warehouse, b.id as cutOffMain, b.no, d.staff, b.[$create] as create
     FROM DxChecking as a
         join cutOffMain as b on a.id = b.id
         join IxUserWarehouse as c on c.xi = b.warehouse
 		left join DxCutOffMain as d on d.id=b.id
     WHERE c.ix = $user
     ORDER BY a.id;
+};
+
+/* 查询验货历史 */
+/* 非必要不增加，增加此query是因为自带的查询无法根据某一项筛选，查询量大，以及分页问题 */
+QUERY GetCheckHistory(
+	warehouse ID
+)
+PAGE (
+	id bigint desc,
+	cutOffMain ID,
+	no CHAR(20),
+	finishTime TIMESTAMP,
+	staff ID
+) {
+	page SELECT a.id, a.id as cutOffMain, a.no, b.finishTime, b.staff
+    FROM cutOffMain as a
+		JOIN DxCheckMain as b on b.id=a.id
+    WHERE a.warehouse=warehouse AND b.staff=$user AND a.id < $pageStart
+		AND NOT exists ( SELECT c.id FROM DxChecking as c WHERE c.id = a.id )
+    ORDER BY a.id desc
+	limit $pageSize;
+};
+
+/* 开始验货 */
+ACT Checking (
+	cutOffMain ID
+) {
+	WITH DxCheckMain ID=cutOffMain SET staff=$user, startTime=$date, finishTime=null;
+
+    VAR warehouse ID;
+	SET warehouse = NULL;
+    SET warehouse = a.warehouse FROM CutOffMain as a WHERE a.id = cutOffMain;
+    IF ( not warehouse is null ) {
+        FOR (VAR user ID OF SELECT ix as user FROM IxUserWarehouse WHERE xi=warehouse) {
+            TUID [$User] ID (user) SET poke=1;
+        }
+    }
+};
+
+/* 取消验货任务 */
+ACT CancelChecking(
+	cutOffMain ID
+) {
+	WITH DxCheckMain ID=cutOffMain SET staff=null, startTime=null, finishTime=null;
+
+    VAR warehouse ID;
+	SET warehouse = NULL;
+    SET warehouse = a.warehouse FROM CutOffMain as a WHERE a.id = cutOffMain;
+    IF ( not warehouse is null ) {
+        FOR (VAR user ID OF SELECT ix as user FROM IxUserWarehouse WHERE xi=warehouse) {
+            TUID [$User] ID (user) SET poke=1;
+        }
+    }
+};
+
+/* 获取验货单详细信息 */
+QUERY GetCheckInfo(
+    cutOffMain ID
+)
+RETURNS main (
+	id Id,
+	no varchar(20),
+	warehouse ID,
+	staff ID,
+	finishTime TIMESTAMP
+)
+RETURNS detail (
+	deliverMain ID,
+    trayNumber int,
+	deliverDetail ID,
+	item ID,
+	checkShould DEC(12,2),
+	checkDone DEC(12,2),
+    lotNumber char(50)
+) {
+	INTO main SELECT a.id, a.no, a.warehouse, b.staff, b.finishTime
+		FROM CutOffMain as a
+			LEFT JOIN DxCheckMain as b ON a.id=b.id
+		WHERE a.id=cutOffMain;
+
+	INTO detail SELECT b.id as delivermain, b.trayNumber, c.id as deliverDetail, c.item
+        , c.quantity as checkShould, d.checkDone, c.lotNumber
+		FROM CutOffMain as a
+			JOIN DeliverMain as b on a.id=b.cutOffMain
+			JOIN DeliverDetail as c on b.id=c.main
+			LEFT JOIN DxDeliverDetail as d ON d.id=c.id
+		WHERE a.id = cutOffMain;
+};
+
+/* 整体验货完成 */
+ACT CheckDone (
+	cutOffMain ID,
+    ARR detail (
+		deliverDetail ID,	-- 发货单明细id
+		quantity DEC(12,2)	-- 实际验货数
+	)
+){
+	WITH DxCheckMain ID=cutOffMain SET finishTime=$date;
+	WITH DxChecking id = cutOffMain DEL;
+    FOR detail {
+		WITH DxDeliverDetail as a ID = deliverDetail SET a.checkDone = quantity;
+	}
+    
+	VAR warehouse ID;
+	SET warehouse = NULL;
+    SET warehouse = a.warehouse FROM CutOffMain as a WHERE a.id = cutOffMain;
+    IF ( not warehouse is null ) {
+        FOR (VAR user ID OF SELECT ix as user FROM IxUserWarehouse WHERE xi=warehouse) {
+            TUID [$User] ID (user) SET poke=1;
+        }
+    }
 };

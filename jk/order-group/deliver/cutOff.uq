@@ -189,11 +189,12 @@ RETURNS main (
 		}
 	}
 	LOG 'CutOff' SUBJECT 'end';
-	WITH DxTalling as a id = cutOffMain;
+	WITH DxChecking as a id = cutOffMain;	-- 验货处理
+	WITH DxTalling as a id = cutOffMain;	-- 理货处理
     INTO main SELECT cutOffMain as id, cutOffMainNo as no;
 	FOR (VAR user ID OF SELECT ix as user FROM IxUserWarehouse WHERE xi=aWarehouse) {
             TUID [$User] ID (user) SET poke=1;
-        }
+    }
 };
 
 /* 选择截单操作(选择部分条目截单) */
@@ -281,11 +282,12 @@ RETURNS main (
 		DELETE a FROM IxPendingRequest as a WHERE a.id = requestDetail;
 	}
 	LOG 'CutOff' SUBJECT 'end';
-	WITH DxTalling as a id = cutOffMain;
+	WITH DxChecking as a id = cutOffMain;	-- 验货处理
+	WITH DxTalling as a id = cutOffMain;	-- 理货处理
     INTO main SELECT cutOffMain as id, cutOffMainNo as no;
 	FOR (VAR user ID OF SELECT ix as user FROM IxUserWarehouse WHERE xi=aWarehouse) {
             TUID [$User] ID (user) SET poke=1;
-        }
+    }
 };
 
 /* 获取截单表详细信息 */

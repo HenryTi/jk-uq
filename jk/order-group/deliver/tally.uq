@@ -61,7 +61,6 @@ ACT CancelTallying(
 	cutOffMain ID,
 ) {
 	WITH DxCutOffMain ID=cutOffMain SET staff=null, startTime=null, finishTime=null;
-	
 };
 
 /* 单个理货完成 */
