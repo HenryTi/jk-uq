@@ -41,6 +41,7 @@ MAP CustomerRelatedProducts(
 TUID Research (
     id,
     main name char(200),
+    main parent ID Research,
     no char(30),
     createTime datetime 
 );
@@ -55,3 +56,17 @@ MAP ResearchDomain (
     key domain ID Domain,
     key research ID Research 
 );
+
+/*
+*/
+Query GetResearchByParent (parent ID Research, key char(100))
+returns ret (
+    id ID Research,
+    name char(200),
+    parent ID Research
+){
+    into ret select r.id, r.name, r.parent
+    from    Research as r
+    where   r.parent = parent
+            and (key is null or r.name like key);
+};
