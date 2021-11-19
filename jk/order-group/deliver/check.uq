@@ -103,7 +103,8 @@ RETURNS detail (
 	item ID,
 	checkShould DEC(12,2),
 	checkDone DEC(12,2),
-    lotNumber char(50)
+    lotNumber char(50),
+	content text
 ) {
 	INTO main SELECT a.id, a.no, a.warehouse, b.staff, b.finishTime
 		FROM CutOffMain as a
@@ -111,7 +112,7 @@ RETURNS detail (
 		WHERE a.id=cutOffMain;
 
 	INTO detail SELECT b.id as delivermain, b.trayNumber, c.id as deliverDetail, c.item
-        , c.quantity as checkShould, d.checkDone, c.lotNumber
+        , c.quantity as checkShould, d.checkDone, c.lotNumber, c.json as content
 		FROM CutOffMain as a
 			JOIN DeliverMain as b on a.id=b.cutOffMain
 			JOIN DeliverDetail as c on b.id=c.main
