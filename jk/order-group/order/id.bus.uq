@@ -1,7 +1,16 @@
 BUS JkOrderBus ver 0.2 from 百灵威系统工程部/[jk-order]
 ACCEPT [receive-done] {
 	FOR detail {
-        WITH DxOrderDetail ID = orderDetail SET receiveDone += value, receiveTime = $date;
+        VAR orderDetailId ID;
+        SET orderDetailId = a.id from OrderDetail as a where a.id = orderDetail;
+        if(orderDetailId is not null) {
+            if not exists(select 1 from OrderDetailReceive as a where a.ix = orderDetail and a.xi = id){
+                WITH DxOrderDetail ID = orderDetail SET receiveDone += value, receiveTime = ifnull(from_unixtime($STAMP), $date);
+                WITH OrderDetailReceive ix = orderDetail xi = id set receiveDone = value, receiveTime = ifnull(from_unixtime($STAMP), $date);
+            }
+
+            -- 记录付款状态
+        }
 	}
 }
 ACCEPT [invoice-done] {

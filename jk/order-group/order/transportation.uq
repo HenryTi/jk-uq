@@ -5,3 +5,11 @@ IX OrderDetailDeliver (
 	deliverDone DEC(12,2),				-- 已发
 	deliverTime TIMESTAMP,				-- 发货时间
 );
+
+-- 
+IX OrderDetailReceive (
+    ix,     -- orderDetail
+    xi,     -- deliverDetail
+	receiveDone DEC(12,2),				-- 已发
+	receiveTime TIMESTAMP,				-- 发货时间
+);
