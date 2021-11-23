@@ -226,7 +226,7 @@ returns ret(
     brand ID Brand,
     brandName char(50)
 ) {
-    into ret b.id AS product, b.origin, b.description, b.descriptionc
+    into ret select b.id AS product, b.origin, b.description, b.descriptionc
 			, c.id AS brand, c.name AS brandName
     from ProductX.PackX as a
          join ProductX as b ON b.id = a.owner
