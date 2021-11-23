@@ -43,7 +43,8 @@ ID DeliverDetail GLOBAL(
 IDX DxDeliverDetail (
     id,
 	deliverDone DEC(12,2) DEFAULT 0,		-- 已发
-    pickDone dec(12, 2) DEFAULT 0 SUM, 
+    pickDone dec(12, 2) DEFAULT 0 SUM,
+	checkDone dec(12, 2) DEFAULT 0,			-- 已验货
 	tallyDone dec(12, 2) DEFAULT 0,			-- 已理
 	tallyState TINYINT DEFAULT 0,			-- 理货状态：0 未完成，1已完成;
 	deliverReturn DEC(12,2) SUM,			-- 应退货
@@ -100,7 +101,7 @@ ACT Delivered(
 	TUID [$User] ID ($user) SET poke=1;
 };
 
-QUERY WarehouseDeliverMain (
+QUERY WarehouseDelivers (
 )
 RETURNS ret (
 	warehouse ID,
@@ -109,14 +110,11 @@ RETURNS ret (
 	cutOffMain CHAR(20),
 	traynumber int,
 	customerAccount ID,
-	create TIMESTAMP,
-	rows SMALLINT,
-	pickRows SMALLINT,
 	staff ID,
 ) {
 	INTO ret SELECT b.warehouse
 		, b.id as deliverMain, b.no, e.no as cutOffMain, b.traynumber
-		, b.customerAccount, b.[$create] as create, d.rows, d.pickRows, d.staff
+		, b.customerAccount, d.staff
 		FROM IxUserWarehouse as a
 			JOIN DeliverMain as b ON a.xi=b.warehouse
 			JOIN DxDelivering as c on c.id=b.id
