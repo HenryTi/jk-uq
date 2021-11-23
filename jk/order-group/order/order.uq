@@ -266,7 +266,7 @@ BOOK OrderState (
     发货完成 tinyint,
 );
 
-MAP OrderBuyerAccount (
+MAP * OrderBuyerAccount (
     key order ID $Sheet,
     key buyerAccount ID BuyerAccount,
 );
