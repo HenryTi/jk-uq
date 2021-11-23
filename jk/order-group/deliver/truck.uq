@@ -140,7 +140,9 @@ ACT AddTruck(
     contact ID,
     json text
 ) {
-	WITH IxPendingTruck as a ix = warehouse xi = biz SET a.contact = contact, a.json = json;
+	-- WITH IxPendingTruck as a ix = warehouse xi = biz SET a.contact = contact, a.json = json;
+    BUS JkDeliverBus.truck set warehouse = warehouse, contact = contact;
+    BUS JkDeliverBus.truck into detail ADD biz = biz, json = json;
 };
 
 /* 排车 */
@@ -277,7 +279,10 @@ ACT AddTruckAdditionalTask(
     SET truckAdditionalTaskID = ID(TruckAdditionalTask new);
     WITH TruckAdditionalTask as a ID = truckAdditionalTaskID
         SET a.contact = contact, a.content = content, a.note = note, a.creator = creator, a.requiredDate = requiredDate;
-	WITH IxPendingTruck as a ix = warehouse xi = truckAdditionalTaskID SET a.contact = contact, a.json = json;
+	-- WITH IxPendingTruck as a ix = warehouse xi = truckAdditionalTaskID SET a.contact = contact, a.json = json;
+    
+    BUS JkDeliverBus.truck set warehouse = warehouse, contact = contact;
+    BUS JkDeliverBus.truck into detail ADD biz = truckAdditionalTaskID, json = json;
     FOR (VAR user ID OF SELECT ix as user FROM IxUserWarehouse WHERE xi=warehouse) {
         TUID [$User] ID (user) SET poke=1;
     }
