@@ -152,9 +152,11 @@ BUS couponBus.getMatchedCredits as q into tb {
         SET specCost = bottomPrice;
         IF(specCost > price * (1 - 0.08))
             set specCost = price * (1 - 0.08);
+        /*
         BUS JkOrderBus.[order-sale-cost] set order = orderMainId;
         BUS JkOrderBus.[order-sale-cost] into [detail]
             ADD [order-detail] = orderDetailId, [cost] = specCost;
+        */
 
         BUS JkOrderBus.[order-sale-margin] set order = orderMainId;
         BUS JkOrderBus.[order-sale-margin] into [detail]
