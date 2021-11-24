@@ -1,11 +1,11 @@
 --产品扩展信息，D72, 2021年3月26日
-MAP ProductExtention (
+MAP * ProductExtention (
     key product ID ProductX,
     content text,
 );
 
 -- 
-MAP ProductStandardSample (
+MAP * ProductStandardSample (
     key product ID ProductX,
     content text,
 );

@@ -1,5 +1,5 @@
 
-OPEN Map ProductEmbargo (
+OPEN Map * ProductEmbargo (
     key product ID ProductX,
     key salesRegion ID SalesRegion,
     type char(10) not null,     --  
