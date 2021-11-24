@@ -8,13 +8,13 @@ OPEN TUID Brand (
     unique (no),
 );
 
-OPEN Map * BrandSalesRegion (
+OPEN Map BrandSalesRegion (
     key brand ID Brand,
     key salesRegion ID SalesRegion,
     level int not null,
 );
 
-OPEN Map * BrandDeliveryTime (
+OPEN Map BrandDeliveryTime (
     key brand ID Brand,
     key salesRegion ID SalesRegion,
     minValue int,
@@ -64,7 +64,7 @@ OPEN TUID ProductX ver 0.5 (
     index idx_unit_origin,
 );
 
-MAP * PriceX ver 0.2 (
+MAP PriceX ver 0.2 (
     key product ID ProductX not null,
     key pack OF product.PackX not null,
     key salesRegion ID SalesRegion not null,
@@ -74,7 +74,7 @@ MAP * PriceX ver 0.2 (
     index idx_pack,
 );
 
-OPEN Map * ProductChemical (
+OPEN Map ProductChemical (
     key product ID ProductX,
     key chemical ID Chemical,
     CAS char(20),
@@ -85,19 +85,19 @@ OPEN Map * ProductChemical (
     index idx_unit_cas,
 );
 
-OPEN MAP * ProductSalesRegion (
+OPEN MAP ProductSalesRegion (
     key product ID ProductX,
     key salesRegion ID SalesRegion,
     isValid tinyint not null,
 );
 
-OPEN MAP * ProductLegallyProhibited (
+OPEN MAP ProductLegallyProhibited (
     key product ID ProductX,
     key salesRegion ID SalesRegion,
     reason char(200),
 );
 
-OPEN Map * ProductDeliveryTime (
+OPEN Map ProductDeliveryTime (
     key product ID ProductX,
     key salesRegion ID SalesRegion,
     minValue int,

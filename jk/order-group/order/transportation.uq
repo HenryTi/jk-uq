@@ -1,5 +1,5 @@
 -- 
-IX OrderDetailDeliver (
+IX * OrderDetailDeliver (
     ix,     -- orderDetail
     xi,     -- deliverDetail
 	deliverDone DEC(12,2),				-- 已发
@@ -7,7 +7,7 @@ IX OrderDetailDeliver (
 );
 
 -- 
-IX OrderDetailReceive (
+IX * OrderDetailReceive (
     ix,     -- orderDetail
     xi,     -- deliverDetail
 	receiveDone DEC(12,2),				-- 已发

@@ -7,7 +7,7 @@ TUID Lot (
 );
 
 --COA信息
-Map * COA (
+Map COA (
     key lot ID Lot not null,
     content text,                               -- COA信息
     version char(50),                           -- COA版本
