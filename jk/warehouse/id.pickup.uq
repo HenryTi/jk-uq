@@ -17,6 +17,7 @@ ID PickupDetail GLOBAL (
     shelfBlock ID,
 	quantity DEC(12,2),
     lotNumber char(50),
+	labelLangue char(10),	-- 标签语言（区分中英文标签）zh \ en
     json text,
 	pickDone dec(12, 2) DEFAULT 0, 
 	pickState TINYINT DEFAULT 0,			-- 拣货状态：0 未完成，1已完成;
@@ -110,10 +111,10 @@ ACT AutoPick (
 	VAR pickupMaxRows INT = 100;
 	TABLE tblWarehousePickup(warehouse ID, cutOffMain ID, pickup ID, rows INT);
     WHILE 1 = 1 {
-        VAR warehouse ID, biz ID, item ID, shelfBlock ID, quantity dec(18, 4), lotNumber char(50), json text;
+        VAR warehouse ID, biz ID, item ID, shelfBlock ID, quantity dec(18, 4), lotNumber char(50), labelLangue char(10), json text;
         SET warehouse = NULL;
         SET warehouse = a.ixx, biz = a.xi, item = a.item
-            , shelfBlock = a.shelfBlock, quantity = a.quantity, lotNumber = a.lotNumber, json = a.json
+            , shelfBlock = a.shelfBlock, quantity = a.quantity, lotNumber = a.lotNumber, labelLangue = a.labelLangue, json = a.json
             FROM IxPendingPickup as a
             where a.ixx = aWarehouse and a.ix = cutOffMain
             ORDER BY a.ixx, a.xi
@@ -147,8 +148,8 @@ ACT AutoPick (
         VAR pickupDetail ID;
         set pickupDetail = ID(PickupDetail new);
         WITH PickupDetail as a ID=pickupDetail
-            SET a.main=pickup, a.biz = biz, a.item = item
-            , a.shelfBlock = shelfBlock, a.quantity = quantity, a.lotNumber = lotNumber, a.json = json;
+            SET a.main=pickup, a.biz = biz, a.item = item, a.shelfBlock = shelfBlock, a.quantity = quantity
+			, a.lotNumber = lotNumber, a.labelLangue = labelLangue, a.json = json;
 		FOR (VAR user ID OF SELECT ix as user FROM IxUserWarehouse WHERE xi=aWarehouse) {
             TUID [$User] ID (user) SET poke=1;
         }
@@ -232,18 +233,15 @@ RETURNS detail (
 	pickdone DEC(12,2),
 	pickstate TINYINT,
 	lotNumber char(50),
+	labelLangue char(10),
     json text
 ) {
 	INTO main SELECT a.id, a.no
 		, a.warehouse, a.picker, a.startTime, a.finishTime
 		-- , a.[$create], a.[$owner]
 		FROM Pickup as a WHERE a.id=pickup;
-	INTO detail SELECT a.id,
-		a.main,			-- Pickup id
-        a.biz,
-		a.item,
-        a.shelfBlock,
-		a.quantity as shouldQuantity, a.pickdone, a.pickstate, a.lotNumber, a.json
+	INTO detail SELECT a.id, a.main, a.biz, a.item, a.shelfBlock,
+		a.quantity as shouldQuantity, a.pickdone, a.pickstate, a.lotNumber, a.labelLangue, a.json
 		FROM PickupDetail as a 
 		WHERE a.main=pickup;
 };
