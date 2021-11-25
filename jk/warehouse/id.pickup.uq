@@ -52,7 +52,8 @@ IX IxPendingOutBoundResult(
 	ix,		-- shelfBlock
 	xi,		-- quantity
 	item ID,
-	lotNumber char(50)
+	lotNumber char(50),
+	labelLangue char(10),	-- 标签语言（区分中英文标签）zh \ en
 );
 
 -- 出库后待拣货的pending
@@ -64,6 +65,7 @@ IX IxPendingPickup (
     shelfBlock ID,
     quantity dec(18, 4),
     lotNumber char(50),
+	labelLangue char(10),	-- 标签语言（区分中英文标签）zh \ en
     json text,
 );
 

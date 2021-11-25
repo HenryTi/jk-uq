@@ -17,7 +17,7 @@ ID DeliverType (
 
 -- 如：销售发货给A客户群的，截单类型为1；销售发货给B客户群的，截单类型为2，销售发货给其他客户的，截单类型为3等；
 -- 报废出库 等不须发货的，不在此处处理（deliver bus不应发送这些发货要求）
-IX IxCutoffTypeDefinition (
+IX * IxCutoffTypeDefinition (
     ixx,    -- DeliverType
     ix,     -- BuyerAccount(DxCutOffTypeBuyerAccount)
     xi,     -- CutOffType
@@ -25,7 +25,7 @@ IX IxCutoffTypeDefinition (
 
 
 -- 用于定义CutOffType具体条件的buyerAcccount
-IDX DxCutOffTypeBuyerAccount (
+IDX * DxCutOffTypeBuyerAccount (
     id,
     name    char(50),
     description char(50),
