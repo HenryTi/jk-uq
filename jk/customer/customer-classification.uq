@@ -38,7 +38,7 @@ MAP CustomerRelatedProducts(
 );
 
 -- 研究领域 
-TUID Research (
+OPEN TUID Research (
     id,
     main name char(200),
     main parent ID Research,
