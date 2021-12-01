@@ -54,8 +54,9 @@ BUS couponBus.getMatchedCredits as q into tb {
             LEFT JOIN IxOrderDetailCoupon as c on c.ix = a.id
     where   a.id = orderDetailId;
 
-    WITH OrderMain ID=orderMainId SET buyerAccount = buyerAccount
-        , no=orderId, createDate = from_unixtime(createDate);
+    WITH OrderMain ID=orderMainId SET buyerAccount = buyerAccount, no=orderId
+        , currency = currency, sumAmount = orderAmount
+        , createDate = from_unixtime(createDate);
     WITH OrderMainEx ID=orderMainId SET seller=seller
         , salesman=salesman
         , salesRegion=salesRegion
@@ -71,6 +72,7 @@ BUS couponBus.getMatchedCredits as q into tb {
 	    , product=product
 	    , quantity=quantity
 	    , price=price
+        , amount = quantity * price
         , lotNumber = lotNumber
         , createDate = from_unixtime(createDate);
     WITH OrderDetailEx ID=orderDetailId SET orderItemId=orderItemId
