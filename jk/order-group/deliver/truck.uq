@@ -101,7 +101,7 @@ RETURNS ret (
 			JOIN TruckMain as b ON a.xi=b.warehouse
 			JOIN DxTrucking as c on c.id=b.id
 			LEFT JOIN DxTruckMain as d ON b.id=d.id
-		WHERE a.ix=$user
+		WHERE a.ix=$user and ( d.staff = $user or d.staff is null )
         ORDER by b.id desc;
 };
 
