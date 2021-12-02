@@ -20,7 +20,7 @@ ACCEPT [deliver-done] {
         SET orderdetail = a.id, orderMain = a.main from OrderDetail as a where a.id = biz;
         if(not orderdetail is null){
             if not exists(select 1 from OrderDetailDeliver as a where a.ix = orderdetail and a.xi = id) {
-                WITH DxOrderDetail ID = orderdetail SET deliverDone += value, deliverTime = $date;
+                WITH DxOrderDetail ID = orderdetail SET deliverDone += value, deliverTime = ifnull(from_unixtime($STAMP), $date);
             }
             WITH OrderDetailDeliver ix = orderdetail xi = id set deliverDone = value, deliverTime = ifnull(from_unixtime($STAMP), $date);
 

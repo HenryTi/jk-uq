@@ -6,6 +6,7 @@ ID OrderMainEx GLOBAL (
     organization ID,
     currency ID,
     poNumber char(100),             -- 对应Termsa.CPONr
+    orderType int,                  -- 定义见jk-me中 OrderType
     carrier ID,
     commentsAboutDeliver   char(1000),
     createDate TIMESTAMP,
@@ -39,7 +40,7 @@ BUS couponBus.getMatchedCredits as q into tb {
 } {
     if(ifnull(source,'') <> 'orderDetail')
         return;
-        
+     
     var lSalesman ID, lCustomerAccount ID;
     set lSalesman = a.salesman, lCustomerAccount = b.buyerAccount
     from    OrderMainEx as a
@@ -54,14 +55,23 @@ BUS couponBus.getMatchedCredits as q into tb {
             LEFT JOIN IxOrderDetailCoupon as c on c.ix = a.id
     where   a.id = orderDetailId;
 
-    WITH OrderMain ID=orderMainId SET buyerAccount = buyerAccount
-        , no=orderId, createDate = from_unixtime(createDate);
+    WITH OrderMain ID=orderMainId SET buyerAccount = buyerAccount, no=orderId
+        , currency = currency, sumAmount = orderAmount
+        , createDate = from_unixtime(createDate);
+    VAR orderType int;
+    set orderType = 01;
+    if exists(select 1 from BuyerAccountForSalesCompany as a where a.id = buyerAccount) {
+        set orderType = 21;
+    }else if exists(select 1 from BuyerAccountForProductionCompany as a where a.id = buyerAccount){
+        set orderType = 22;
+    }
     WITH OrderMainEx ID=orderMainId SET seller=seller
         , salesman=salesman
         , salesRegion=salesRegion
         , organization=organization
         , currency=currency
         , poNumber = poNumber
+        , orderType = orderType
         , carrier = carrier
         , commentsAboutDeliver = commentsAboutDeliver
         , createDate=from_unixtime(createDate);
@@ -71,6 +81,7 @@ BUS couponBus.getMatchedCredits as q into tb {
 	    , product=product
 	    , quantity=quantity
 	    , price=price
+        , amount = quantity * price
         , lotNumber = lotNumber
         , createDate = from_unixtime(createDate);
     WITH OrderDetailEx ID=orderDetailId SET orderItemId=orderItemId
@@ -114,6 +125,11 @@ BUS couponBus.getMatchedCredits as q into tb {
             bus couponBus.[order-coupon] set id = orderMainId, couponUser = endUserId, coupon = creditsId;
             bus couponBus.[order-coupon] into detail add id = orderDetailId;
         }
+    }else{
+        -- 导数据时，使用订单上发过来的salesman（因为customerBound中无历史绑定数据)
+        BUS JkOrderBus.[order-bound-staff-sales] set order = orderMainId;
+        BUS JkOrderBus.[order-bound-staff-sales] into [to] 
+            ADD [id] = salesman, [bound-type] = 'assign';
     }
 
     if(quantity > 0 and $importing = 0) {
@@ -127,10 +143,10 @@ BUS couponBus.getMatchedCredits as q into tb {
             , tradeType = tradeType, createDate = createDate;
     }
 
-    if(buyerAccount <> ifnull(lCustomerAccount, 0) or quantity <> ifnull(lQuantity, 0) or price <> ifnull(lPrice, 0)
+    if(buyerAccount <> ifnull(lCustomerAccount, 0) or quantity <> ifnull(lQuantity, 0) or abs(ifnull(price, 0) - ifnull(lPrice, 0)) > 0.001
     or $importing = 1){
         BUS JkOrderBus.order STAMP createDate;
-        BUS JkOrderBus.order SET id=orderMainId, no=orderId, customerAccount = buyerAccount, seller = seller; -- TODO: 缺少Contact
+        BUS JkOrderBus.order SET id=orderMainId, no=orderId, customerAccount = buyerAccount, seller = seller, type = orderType; -- TODO: 缺少Contact
         BUS JkOrderBus.order INTO detail 
             ADD id = orderDetailId
                     , item = pack
@@ -139,9 +155,7 @@ BUS couponBus.getMatchedCredits as q into tb {
                     , price = price
                     , amount = quantity*price;  -- TODO:缺少lotNumber等
     }
-    if(ifnull(lBottomPrice, 0) - ifnull(bottomPrice, 0) > 0.001 or ifnull(lBottomPrice, 0) - ifnull(bottomPrice, 0) < -0.001
-    or ifnull(lPrice, 0) - ifnull(price, 0) > 0.001 or ifnull(lPrice, 0) - ifnull(price, 0) < -0.001
-    or $importing = 1){
+    if(abs(ifnull(lBottomPrice, 0) - ifnull(bottomPrice, 0)) > 0.001 or abs(ifnull(lPrice, 0) - ifnull(price, 0)) > 0.001 or $importing = 1){
         -- cost的计算方法： 提成c = (price - cost) * 0.08 = max(price - bottomPrice, price * 0.08) * 0.08;
         -- 所以price - cost = max(price - bottomPrice, price * 0.08) => cost = price - max(price - bottomPrice, price * 0.08) =>
         -- cost = min(bottomPrice, price * (1-0.08)) 
@@ -149,9 +163,15 @@ BUS couponBus.getMatchedCredits as q into tb {
         SET specCost = bottomPrice;
         IF(specCost > price * (1 - 0.08))
             set specCost = price * (1 - 0.08);
+        /*
         BUS JkOrderBus.[order-sale-cost] set order = orderMainId;
         BUS JkOrderBus.[order-sale-cost] into [detail]
             ADD [order-detail] = orderDetailId, [cost] = specCost;
+        */
+
+        BUS JkOrderBus.[order-sale-margin] set order = orderMainId;
+        BUS JkOrderBus.[order-sale-margin] into [detail]
+            ADD [orderdetail] = orderDetailId, [value] = (price - specCost) / (1 + taxRate);
     }
 }
 ACCEPT returnChanged {

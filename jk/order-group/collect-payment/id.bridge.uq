@@ -2,20 +2,44 @@ BUS fiRBus from 百灵威系统工程部/FiReceivable
 ACCEPT innerOrderPaid {
     WITH ReceiveMain ID = receiveMainId;
 
-    BUS JkOrderBus.[receive-done] STAMP createDate/1000;
-    BUS JkOrderBus.[receive-done] SET id = receiveMainId;
-
     VAR tAmount dec(12, 2);
     set tAmount = amount;
     if (action <> 1) {
         set tAmount = amount * -1;
     }
 
-    if not exists(select 1 from ReceiveDetail as t where t.id = receiveDetailId){
-        WITH DxOrderDetail as a ID = orderDetailId set a.receiveDone += tAmount;
+    -- 处理bus重复发送的情况
+    if exists(select 1 from ReceiveDetail as t where t.id = receiveDetailId 
+    and t.orderDetail = orderDetailId and abs(t.amount - tAmount) < 0.00001){
+        return;
+    };
+    if exists(select 1 from OppositeReceiveDetail as a join ReceiveDetail as t on a.opposite = t.ID 
+    where a.id = receiveDetailId and t.orderDetail = orderDetailId and abs(t.amount - tAmount) < 0.00001) {
+        return;
+    }
+
+    -- 处理付款作废的情况
+    if exists(select 1 from ReceiveDetail as t where t.id = receiveDetailId 
+    and t.orderDetail = orderDetailId and abs(t.amount - tAmount*-1) < 0.00001){
+        VAR opposite ID;
+        SET opposite = a.opposite from OppositeReceiveDetail as a where a.id = receiveDetailId;
+        if(opposite is null){
+            SET opposite = ID(ReceiveDetail new);
+            WITH OppositeReceiveDetail as a ID = receiveDetailId set a.opposite = opposite;
+        }
+        SET receiveDetailId = opposite;
     }
     WITH ReceiveDetail ID = receiveDetailId 
         SET main = receiveMainId, orderDetail = orderDetailId, amount = tAmount, createDate = from_unixtime(createDate/1000);
+    WITH DxOrderDetail as a ID = orderDetailId set a.receiveDone += tAmount;
+
+    BUS JkOrderBus.[receive-done] STAMP createDate/1000;
+    BUS JkOrderBus.[receive-done] SET id = receiveMainId;
     BUS JkOrderBus.[receive-done] INTO detail 
         ADD id = receiveDetailId, orderdetail = orderDetailId, value = tAmount;
 };
+
+IDX OppositeReceiveDetail(
+    id,     -- 
+    opposite ID ReceiveDetail,     --
+);

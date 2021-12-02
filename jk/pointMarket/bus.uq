@@ -202,63 +202,65 @@ BUS JkOrderBus from 百灵威系统工程部/[jk-order]
     }
     -- 订单回款计算有效积分
     ACCEPT [receive-done] {
-        VAR reMainId ID;
-        SET reMainId = id;
-        WITH ReceiveMain as a ID = id;
-
         FOR detail {
-            var lValidPoint int;    -- 本次回款有效积分
+            var lPoint int;    -- 本次回款有效积分
             var pointYear int;      -- 积分年度
             var customer int;        -- 最终积分用户
-            var rTotalPoint int;        -- 订单总积分
             var rPoint int;         -- 订单有效积分
             var orderMainNo char(50);
             var orderDetailNo char(50);
             var orderDetailId int;
             var lReceiveValue DEC(12,2);  --上次回款金额
-            var dReceiveValue dec(12,2);  --回款差额
+            var dPoint dec(12,2);  --积分差值
             
-            -- 获取上次回款金额
-            set lReceiveValue = a.amount
-            from ReceiveDetail as a
-            where a.id = id;
-            set lReceiveValue = ifnull(lReceiveValue , 0);
+            -- 接收到的回款数据后，判断是否在订单回款记录中 ,增加回款金额判断是为了防止重复接收数据。
+            if not exists(select 1 from IxOrderDetailReceive as a where a.ix = orderdetail and a.xi = id and abs(a.receiveAmount - value) < 0.01) {
+                -- 订单回款记录
+                var tempReceiveAmount dec(12,2);
+                set tempReceiveAmount = a.receiveAmount
+                from    IxOrderDetailReceive as a
+                where a.ix = orderdetail and a.xi = id;
 
-            -- 计算回款差额
-            set dReceiveValue = ifnull(value , 0) - lReceiveValue;
-    
-            if exists (select 1 from DxOrderDetail as dod where dod.id = orderdetail and dod.totalPoint > 0) {
-                set lValidPoint = dReceiveValue * b.multiple
-                    , customer = a.endUser, pointYear = year(a.createDate), rTotalPoint = b.totalPoint, rPoint = b.point
-                    , orderMainNo = a.orderMainNo, orderDetailNo = a.orderDetailNo
-                    , orderDetailId = orderdetail
-                from    OrderDetail as a
-                        join DxOrderDetail as b on a.id = b.id
-                where a.id = orderdetail;
+                WITH IxOrderDetailReceive ix = orderdetail xi = id set receiveAmount = ifnull(tempReceiveAmount, 0) + value;
 
-                -- 订单累计有效积分不能大于总积分
-                if ( lValidPoint <> 0 ) {                    
-                    -- 1.有效积分记账
-                    -- 1.1. 针对客户
-                    book PointBookByCustomer at (customer, pointYear) set point += lValidPoint;
-                    -- 1.2.订单积分记账，针对订单明细
-                    WITH DxOrderDetail as a ID = orderDetailId set a.point += lValidPoint;
+                -- 获取订单回款金额
+                set lReceiveValue = sum(a.receiveAmount)
+                from IxOrderDetailReceive as a
+                where a.ix = orderdetail;
 
-                    -- 2.积分历史记录
-                    -- 2.1针对客户、年度、积分、积分来源分类、积分源ID(订单ID,积分券Id),备注（上次积分与本次积分计算过程）
-                    history PointHistoryByCustomer 
-                        set pointYear = pointYear, point = lValidPoint, pointType = EnumPointType.point, source = EnumPointChangingSource.order, 
-                        comments = concat(orderMainNo, ',', orderDetailNo), customer = customer;               
-                    -- 2.2 针对订单明细
-                    history OrderDetailPointHistory
-                        set orderDetailId = orderDetailId, pointYear = pointYear, point = lValidPoint, 
-                        type = 6, comments = concat(orderMainNo, ',', orderDetailNo);
+                -- 订单在订单积分记录中，有记录且总积分值大于0
+                if exists(select 1 from DxOrderDetail as a where a.id = orderdetail and a.totalPoint > 0) {
+                    set rPoint = b.point, lPoint = lReceiveValue * b.multiple
+                        , customer = a.endUser, pointYear = year(a.createDate)
+                        , orderMainNo = a.orderMainNo, orderDetailNo = a.orderDetailNo
+                        , orderDetailId = orderdetail
+                    from    OrderDetail as a
+                            join DxOrderDetail as b on a.id = b.id
+                    where a.id = orderdetail;
+
+                    -- 计算有效积分差值
+                    set dPoint = lPoint - rPoint;
+                    if dPoint <> 0 {
+                        -- 1.有效积分记账
+                        -- 1.1. 针对客户
+                        book PointBookByCustomer at (customer, pointYear) set point += dPoint;
+                        -- 1.2.订单积分记账，针对订单明细
+                        WITH DxOrderDetail as a ID = orderDetailId set a.point += dPoint;
+
+                        -- 2.积分历史记录
+                        -- 2.1针对客户、年度、积分、积分来源分类、积分源ID(订单ID,积分券Id),备注（上次积分与本次积分计算过程）
+                        
+                        history PointHistoryByCustomer 
+                            set pointYear = pointYear, point = dPoint, pointType = EnumPointType.point, source = EnumPointChangingSource.order, 
+                            comments = concat(orderMainNo, ',', orderDetailNo), customer = customer;               
+                        -- 2.2 针对订单明细
+                        history OrderDetailPointHistory
+                            set orderDetailId = orderDetailId, pointYear = pointYear, point = dPoint, 
+                            type = 6, comments = concat(orderMainNo, ',', orderDetailNo);  
+                        
+                    }
                 }
             }
-
-            -- 记录回款单
-            with ReceiveDetail as a ID = id
-                set a.main = reMainId, a.orderDetail = orderDetail, a.amount = ifnull(value , 0);
         }
     }
     ACCEPT return {
@@ -352,7 +354,7 @@ ACCEPT [deliver-done] {
         SET exchangeDetailId = a.id, exchangeMainId = a.main from ExchangeDetail as a where a.id = biz;
         if(not exchangeDetailId is null){
             if not exists(select 1 from ExchangeDetailDeliver as a where a.ix = exchangeDetailId and a.xi = id) {
-                WITH DxExchangeDetail ID = exchangeDetailId SET deliverDone += value, deliverTime = $date;
+                WITH DxExchangeDetail ID = exchangeDetailId SET deliverDone += value, deliverTime = ifnull(from_unixtime($STAMP), $date);
             }
             WITH ExchangeDetailDeliver ix = exchangeDetailId xi = id set deliverDone = value, deliverTime = ifnull(from_unixtime($STAMP), $date);
 

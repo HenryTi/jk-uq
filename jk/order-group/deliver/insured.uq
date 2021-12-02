@@ -4,7 +4,7 @@ ID InsuredType (
     description    char(50),
 );
 
-IX InsuredTypeBrand (
+IX * InsuredTypeBrand (
     ix,     -- InsuredType
     xi,     -- brand
 );
@@ -17,7 +17,7 @@ ID InsuredInterval (
 );
 
 -- 定义有个报价类型和区间的设置表
-IX InsuredTypeInterval (
+IX * InsuredTypeInterval (
     ix,     -- InsuredType
     xi,     -- InsuredInterval
     amount  dec(12, 2),     -- 保价金额

@@ -37,3 +37,9 @@ Map ProductCategoryLeafCache (
     key parent  ID ProductCategory,
     key leaf    ID ProductCategory
 );
+
+-- 目录节点与客户研究领域的对应关系
+IX * ProductCategoryResearchDomain (
+    ix, -- ProductCategory
+    xi, -- Customer.Research
+);

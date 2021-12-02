@@ -69,6 +69,7 @@ PAGE (
     chemical ID Chemical,
     CAS char(20),
     purity char(80),
+    gradeCN char(200),
     molecularFomula char(200),
     molecularWeight char(30)
 ) {
@@ -117,9 +118,11 @@ PAGE (
     order by p.sourcerank, p.score desc, p.hasstock desc, p.level desc
     limit 499;
 
-    INSERT  INTO `_$page` (`id`, `no`,`brand`,`origin`,`description`,`descriptionc`,`imageurl`,`chemical`,`cas`,`purity`,`molecularfomula`,`molecularweight`, `seq`)
+    INSERT  INTO `_$page` (`id`, `no`,`brand`,`origin`,`description`,`descriptionc`,`imageurl`,`chemical`,`cas`,`purity`
+            , `gradeCN`,`molecularfomula`,`molecularweight`, `seq`)
     SELECT  p.`id`,p.`no` AS `no`,p.`brand` AS `brand`,p.`origin` AS `origin`,p.`description` AS `description`
-            ,p.`descriptionc` AS `descriptionc`,p.`imageurl` AS `imageurl`,pc.`chemical` AS `chemical`,pc.`cas` AS `cas`,pc.`purity` AS `purity`,pc.`molecularfomula` AS `molecularfomula`,pc.`molecularweight` AS `molecularweight`,
+            ,p.`descriptionc` AS `descriptionc`,p.`imageurl` AS `imageurl`,pc.`chemical` AS `chemical`,pc.`cas` AS `cas`,
+            pc.`purity` AS `purity`, pc.`gradeCN`, pc.`molecularfomula` AS `molecularfomula`,pc.`molecularweight` AS `molecularweight`,
             pp.`id` as `seq`
     from    `_$page_product` as pp
             inner join tv_productx as p on p.id = pp.product
@@ -211,4 +214,22 @@ returns ret (
     from PriceX as p
          join ProductX.PackX as pk on p.product = pk.owner and p.pack = pk.id
     where p.product = product and p.salesRegion = salesRegion;
+};
+
+/* 查询产品信息（根据PackX id） */
+QUERY GetProductByPackId(pack ID ProductX.PackX)
+returns ret(
+    product ID ProductX,
+    origin char(50),
+    description char(1000),
+    descriptionC char(1000),
+    brand ID Brand,
+    brandName char(50)
+) {
+    into ret select b.id AS product, b.origin, b.description, b.descriptionc
+			, c.id AS brand, c.name AS brandName
+    from ProductX.PackX as a
+         join ProductX as b ON b.id = a.owner
+         join Brand as c on c.id = b.brand
+    where a.id = pack;
 };

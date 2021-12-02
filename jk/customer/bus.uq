@@ -34,7 +34,7 @@ bus cBus from 百灵威系统工程部/coupon
         delete t from CustomerCredits as t where t.customer = customer and t.credits = coupon;
         for orderItems {
             if not exists(select 1 from CustomerCreditsUsed as t 
-            where t.customer = customer and t.credits = coupon and t.saleOrderItemId = orderItemId) {
+            where t.customer = customer and t.credits = coupon and t.saleOrderItem = orderItemId) {
                 book CustomerCreditsUsed at(customer, coupon, orderItemId) set usedDate = now();
             }
         }

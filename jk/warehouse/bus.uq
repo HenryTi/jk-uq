@@ -21,9 +21,9 @@ BUS JkDeliverBus ver 0.9 from 百灵威系统工程部/[jk-deliver]
     ACCEPT pickup {
         FOR detail {
             -- 接受bus时候判断 IxPendingOutBoundResult 是否存在完整的货架出库信息。
-            VAR shelfBlock ID, quantitya int, itema ID, lotNumbera char(50);
+            VAR shelfBlock ID, quantitya int, itema ID, lotNumbera char(50), labelLangue char(10);
             SET shelfBlock = NULL;
-            SET shelfBlock = a.ix, quantitya = a.xi, itema = a.item, lotNumbera = a.lotNumber
+            SET shelfBlock = a.ix, quantitya = a.xi, itema = a.item, lotNumbera = a.lotNumber, labelLangue = a.labelLangue
                 FROM IxPendingOutBoundResult as a
                 WHERE a.ixx = biz2 AND a.xi <= quantity
                 LIMIT 1;
@@ -31,12 +31,12 @@ BUS JkDeliverBus ver 0.9 from 百灵威系统工程部/[jk-deliver]
             -- 如果完整直接生成拣货单，如果不完整则把数据写入IxPendingOutBound表，等待接受shelfInOutBoundHistory BUS时候执行生成拣货单；
             IF(NOT shelfBlock IS NULL) {
                 WITH IxPendingPickup ixx = warehouse ix = cutOffMain xi = biz
-                set item = itema, shelfBlock = shelfBlock, quantity = quantitya, lotNumber = lotNumbera, json = json;
+                    set item = itema, shelfBlock = shelfBlock, quantity = quantitya, lotNumber = lotNumbera, labelLangue = labelLangue, json = json;
                 WITH IxPendingOutBoundResult ixx = biz2 ix = shelfBlock xi = quantitya DEL;
                 SCHEDULE AutoPick(warehouse,cutOffMain) DELAY 2; -- 2分钟以后执行一次
             } ELSE {
                 WITH IxPendingOutBound ixx = warehouse ix = cutOffMain xi = biz
-                set biz2 = biz2, item = item, quantity = quantity, lotNumber = lotNumber, json = json;
+                    set biz2 = biz2, item = item, quantity = quantity, lotNumber = lotNumber, json = json;
             }
         }
         -- SCHEDULE AutoOutBound DELAY 2; -- 2分钟以后执行一次
@@ -60,21 +60,28 @@ BUS warehouseBus from [百灵威系统工程部]/warehouse
         if(inOutType = 0) {
 
             -- 接受bus时候判断：从IxPendingOutBound是否能查询到（包含cutOffMain、warehouse）完整的数据信息。
-            VAR cutOffMain ID, deliverDetail ID, warehouse ID;
+            VAR cutOffMain ID, deliverDetail ID, warehouse ID, labelLangue char(10), aJson text;    -- 编译报错，提示重复定义变量 json，修改为aJson
             SET cutOffMain = NULL;
-            SET cutOffMain = a.ix, deliverDetail = a.xi, warehouse = a.ixx
+            SET cutOffMain = a.ix, deliverDetail = a.xi, warehouse = a.ixx, aJson = a.json
                 FROM IxPendingOutBound as a
                 WHERE a.biz2 = biz2 AND a.quantity >= quantity
                 LIMIT 1;
-
+            
+            IF (stockType ='C05') {
+                SET labelLangue = 'en';
+            } ELSE IF (stockType ='C09') {
+                SET labelLangue = 'en';
+            } ELSE {
+                SET labelLangue = 'zh'
+            }
             -- 如果完整直接生成拣货单，如果不完整则把数据写入IxPendingOutBoundResult表，等待接受pickup BUS时候执行生成拣货单；
             IF(NOT cutOffMain IS NULL) {
                 WITH IxPendingPickup ixx = warehouse ix = cutOffMain xi = deliverDetail
-                set item = pack, shelfBlock = shelfBlock, quantity = quantity, lotNumber = lotNumber, json = json;
+                    set item = pack, shelfBlock = shelfBlock, quantity = quantity, lotNumber = lotNumber, labelLangue = labelLangue, json = aJson;
                 -- 是否在此删除 IxPendingOutBound 待出库数据？
                 SCHEDULE AutoPick(warehouse,cutOffMain) DELAY 2; -- 2分钟以后执行一次
             } ELSE{
-                WITH IxPendingOutBoundResult ixx = biz2 ix = shelfBlock xi = quantity set item = pack, lotnumber = lotnumber;
+                WITH IxPendingOutBoundResult ixx = biz2 ix = shelfBlock xi = quantity set item = pack, lotnumber = lotnumber, labelLangue = labelLangue;
             }
         }
     }

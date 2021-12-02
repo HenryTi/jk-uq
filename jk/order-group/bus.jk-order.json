@@ -36,6 +36,10 @@
         "orderdetail: id",
         "value: number"
     ],
+    "order-detail-value": [
+        "orderdetail: id",
+        "value: number"
+    ],
     "receive": [
         "note"
     ],
@@ -83,6 +87,10 @@
     "order-cost-detail": [
         "order-detail: id",
         "cost: number"
+    ],
+    "order-sale-margin": [
+        "order: id",
+        "detail: order-detail-value"
     ],
     "order-binding": [
         "-- order id, binding可以是coupon，也可以是userid，或者其它标志。如果网页点击，可以直接带id",

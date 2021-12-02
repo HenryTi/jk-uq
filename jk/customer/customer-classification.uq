@@ -1,3 +1,4 @@
+-- Domain是什么？ 可能是徐蓉想搞的另外一套研究领域，但是没搞成
 OPEN TUID Domain (
     id,
     main name char(200),
@@ -10,7 +11,8 @@ MAP CustomerDomain (
     key customer ID Customer,
     key domain ID Domain
 );
-  
+
+-- 这个我怀疑是“客户职位”，但是这个名字和joint里的配置写的不一致，后者叫Position  
 TUID Post (
     id,
     main name char(200),
@@ -34,10 +36,12 @@ MAP CustomerRelatedProducts(
     key product ID  ProductX,
     sort int 
 );
- 
-TUID Research (
+
+-- 研究领域 
+OPEN TUID Research (
     id,
     main name char(200),
+    main parent ID Research,
     no char(30),
     createTime datetime 
 );
@@ -52,3 +56,17 @@ MAP ResearchDomain (
     key domain ID Domain,
     key research ID Research 
 );
+
+/*
+*/
+Query GetResearchByParent (parent ID Research, key char(100))
+returns ret (
+    id ID Research,
+    name char(200),
+    parent ID Research
+){
+    into ret select r.id, r.name, r.parent
+    from    Research as r
+    where   r.parent = parent
+            and (key is null or r.name like key);
+};
