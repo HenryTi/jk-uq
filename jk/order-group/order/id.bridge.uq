@@ -6,6 +6,7 @@ ID OrderMainEx GLOBAL (
     organization ID,
     currency ID,
     poNumber char(100),             -- 对应Termsa.CPONr
+    orderType int,                  -- 定义见jk-me中 OrderType
     carrier ID,
     commentsAboutDeliver   char(1000),
     createDate TIMESTAMP,
@@ -39,7 +40,7 @@ BUS couponBus.getMatchedCredits as q into tb {
 } {
     if(ifnull(source,'') <> 'orderDetail')
         return;
-        
+     
     var lSalesman ID, lCustomerAccount ID;
     set lSalesman = a.salesman, lCustomerAccount = b.buyerAccount
     from    OrderMainEx as a
@@ -57,12 +58,20 @@ BUS couponBus.getMatchedCredits as q into tb {
     WITH OrderMain ID=orderMainId SET buyerAccount = buyerAccount, no=orderId
         , currency = currency, sumAmount = orderAmount
         , createDate = from_unixtime(createDate);
+    VAR orderType int;
+    set orderType = 01;
+    if exists(select 1 from BuyerAccountForSalesCompany as a where a.id = buyerAccount) {
+        set orderType = 21;
+    }else if exists(select 1 from BuyerAccountForProductionCompany as a where a.id = buyerAccount){
+        set orderType = 22;
+    }
     WITH OrderMainEx ID=orderMainId SET seller=seller
         , salesman=salesman
         , salesRegion=salesRegion
         , organization=organization
         , currency=currency
         , poNumber = poNumber
+        , orderType = orderType
         , carrier = carrier
         , commentsAboutDeliver = commentsAboutDeliver
         , createDate=from_unixtime(createDate);
@@ -137,7 +146,7 @@ BUS couponBus.getMatchedCredits as q into tb {
     if(buyerAccount <> ifnull(lCustomerAccount, 0) or quantity <> ifnull(lQuantity, 0) or abs(ifnull(price, 0) - ifnull(lPrice, 0)) > 0.001
     or $importing = 1){
         BUS JkOrderBus.order STAMP createDate;
-        BUS JkOrderBus.order SET id=orderMainId, no=orderId, customerAccount = buyerAccount, seller = seller; -- TODO: 缺少Contact
+        BUS JkOrderBus.order SET id=orderMainId, no=orderId, customerAccount = buyerAccount, seller = seller, type = orderType; -- TODO: 缺少Contact
         BUS JkOrderBus.order INTO detail 
             ADD id = orderDetailId
                     , item = pack

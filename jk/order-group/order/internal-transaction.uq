@@ -1,0 +1,23 @@
+IDX BuyerAccountForSalesCompany(
+    id,
+    name    char(50),
+    description char(100),
+);
+
+IDX BuyerAccountForProductionCompany(
+    id,
+    name    char(50),
+    description char(100),
+);
+
+IDX BuyerAccountForStockup(
+    id,
+    name    char(50),
+    description char(100),
+);
+
+IDX BuyerAccountForAllocateInventory(
+    id,
+    name    char(50),
+    description char(100),
+);
