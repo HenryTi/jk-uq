@@ -210,3 +210,14 @@ ACTION CountProductCategoryInclusion() {
     end;
     -/
 };
+
+/* 获取目录节点相关的研究领域 */
+QUERY GetResearchByProductCategory(productCategory ID ProductCategory)
+returns ret (
+    productCategory ID ProductCategory,
+    research ID Research
+) {
+    into ret select pcr.ix as research, pcr.xi as productCategory
+    from ProductCategoryResearchDomain as pcr
+    where pcr.xi = productCategory;
+};
