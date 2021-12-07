@@ -146,7 +146,8 @@ BUS couponBus.getMatchedCredits as q into tb {
     if(buyerAccount <> ifnull(lCustomerAccount, 0) or quantity <> ifnull(lQuantity, 0) or abs(ifnull(price, 0) - ifnull(lPrice, 0)) > 0.001
     or $importing = 1){
         BUS JkOrderBus.order STAMP createDate;
-        BUS JkOrderBus.order SET id=orderMainId, no=orderId, customerAccount = buyerAccount, seller = seller, type = orderType; -- TODO: 缺少Contact
+        BUS JkOrderBus.order SET id=orderMainId, no=orderId, customerAccount = buyerAccount
+        , seller = seller, currency = currency, type = orderType; -- TODO: 缺少Contact
         BUS JkOrderBus.order INTO detail 
             ADD id = orderDetailId
                     , item = pack
