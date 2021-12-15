@@ -299,3 +299,26 @@ ACT CancelTruckAdditionalTask(
     WITH TruckAdditionalTask as a ID = truckAdditionalTask
         SET a.state = 3;
 };
+
+/* 出车人员信息 */
+ID TruckStaff(
+    id,
+    name CHAR(20),
+    webuser ID,
+    sys(create)
+);
+
+/* 出车批次 */
+ID TruckBatch(
+    id,
+    KEY name CHAR(20),
+    sys(create)
+);
+
+/* 单位排车批次 */
+IX UnitTruckBatch(
+    ix,     -- TruckStaff Id
+    xi,     -- 单位id
+    ixx,     -- 出车批次id
+    staff ID
+);
