@@ -160,10 +160,11 @@ BUS couponBus.getMatchedCredits as q into tb {
         -- cost的计算方法： 提成c = (price - cost) * 0.08 = max(price - bottomPrice, price * 0.08) * 0.08;
         -- 所以price - cost = max(price - bottomPrice, price * 0.08) => cost = price - max(price - bottomPrice, price * 0.08) =>
         -- cost = min(bottomPrice, price * (1-0.08)) 
-        VAR specCost dec(18, 4);
-        SET specCost = bottomPrice;
-        IF(specCost > price * (1 - 0.08))
-            set specCost = price * (1 - 0.08);
+        VAR specCost dec(18, 4), priceRMB dec(18, 4);
+        SET specCost = bottomPrice * a.rate from CurrencyExchangeRate as a where a.currency = bottomPriceCurrency and a.targetCurrency = 5;
+        SET priceRMB = price * a.rate from CurrencyExchangeRate as a where a.currency = currency and a.targetCurrency = 5;
+        IF(specCost > priceRMB * (1 - 0.08))
+            set specCost = priceRMB * (1 - 0.08);
         /*
         BUS JkOrderBus.[order-sale-cost] set order = orderMainId;
         BUS JkOrderBus.[order-sale-cost] into [detail]
@@ -172,7 +173,7 @@ BUS couponBus.getMatchedCredits as q into tb {
 
         BUS JkOrderBus.[order-sale-margin] set order = orderMainId;
         BUS JkOrderBus.[order-sale-margin] into [detail]
-            ADD [orderdetail] = orderDetailId, [value] = (price - specCost) / (1 + taxRate);
+            ADD [orderdetail] = orderDetailId, [value] = (priceRMB - specCost) / (1 + taxRate);
     }
 }
 ACCEPT returnChanged {

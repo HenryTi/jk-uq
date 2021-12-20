@@ -1,0 +1,5 @@
+MAP CurrencyExchangeRate (
+    key currency ID,   -- 目标币种
+    key targetCurrency ID,
+    rate dec(12, 4),
+);
