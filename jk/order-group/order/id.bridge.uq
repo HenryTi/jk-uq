@@ -76,7 +76,7 @@ BUS couponBus.getMatchedCredits as q into tb {
         , orderType = orderType
         , carrier = carrier
         , commentsAboutDeliver = commentsAboutDeliver
-        ，invoiceDesc = invoiceDesc
+        , invoiceDesc = invoiceDesc
         , createDate=from_unixtime(createDate);
 
     WITH OrderDetail ID=orderDetailId SET main=orderMainId
