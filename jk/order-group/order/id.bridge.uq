@@ -9,6 +9,7 @@ ID OrderMainEx GLOBAL (
     orderType int,                  -- 定义见jk-me中 OrderType
     carrier ID,
     commentsAboutDeliver   char(1000),
+    invoiceDesc char(30),           -- 发票说明
     createDate TIMESTAMP,
 );
 
@@ -28,6 +29,7 @@ ID OrderDetailEx GLOBAL (
     tradeType CHAR(10),
     taxRate DEC(6,2),
     promotionId CHAR(20),
+    salesCategory CHAR(50),         --销售类别
     createDate TIMESTAMP,
 );
 
@@ -74,6 +76,7 @@ BUS couponBus.getMatchedCredits as q into tb {
         , orderType = orderType
         , carrier = carrier
         , commentsAboutDeliver = commentsAboutDeliver
+        ，invoiceDesc = invoiceDesc
         , createDate=from_unixtime(createDate);
 
     WITH OrderDetail ID=orderDetailId SET main=orderMainId
@@ -98,6 +101,7 @@ BUS couponBus.getMatchedCredits as q into tb {
         , tradeType=tradeType
         , taxRate=taxRate
         , promotionId=promotionId
+        , salesCategory = salesCategory
         , createDate=from_unixtime(createDate);
 
     WITH DxOrderDetail ID=orderDetailId SET deliver=quantity;
@@ -140,7 +144,9 @@ BUS couponBus.getMatchedCredits as q into tb {
             , orderMainId = orderMainId, orderMainNo = orderId, customer = endUserId
             , brand = brand, product = product, item = pack, quantity = quantity, price = price, retail = retail
             , currency = currency, coupon = creditsId, mark = mark
-            , tradeType = tradeType, createDate = createDate;
+            , tradeType = tradeType
+            , invoiceDesc = invoiceDesc, salesCategory = salesCategory
+            , createDate = createDate;
     }
 
     if(buyerAccount <> ifnull(lCustomerAccount, 0) or quantity <> ifnull(lQuantity, 0) or abs(ifnull(price, 0) - ifnull(lPrice, 0)) > 0.001
