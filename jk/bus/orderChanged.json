@@ -34,6 +34,8 @@
         "tradeType: string",
         "taxRate: number",
         "promotionId: string",
+        "invoicedesc: string",
+        "salescategory: string",
         "createDate: number"
     ],
     "returnChanged": [
