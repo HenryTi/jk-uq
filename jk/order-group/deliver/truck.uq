@@ -1,5 +1,5 @@
 /* 送货排车任务 */
-IX IxPendingTruck (
+IX * IxPendingTruck (
     ix, -- Warehouse
     xi, -- deliver detail id,
     contact ID,
@@ -7,7 +7,7 @@ IX IxPendingTruck (
 );
 
 /* 进行中的送货 */
-IDX DxTrucking (
+IDX * DxTrucking (
     id,
 );
 
@@ -21,7 +21,7 @@ ID TruckMain GLOBAL(
 );
 
 /* 送货（排车）单扩展信息 */
-IDX DxTruckMain (
+IDX * DxTruckMain (
     id,					    -- truck main id
 	staff ID,			    -- 送货人
 	startTime TIMESTAMP DEFAULT NULL,    -- 任务领用时间
@@ -298,4 +298,44 @@ ACT CancelTruckAdditionalTask(
 	WITH IxPendingTruck as a ix = warehouse xi = truckAdditionalTask DEL;
     WITH TruckAdditionalTask as a ID = truckAdditionalTask
         SET a.state = 3;
+};
+
+/* 出车人员信息 */
+ID TruckStaff(
+    id,
+    name CHAR(20),
+    webuser ID,
+    sys(create)
+);
+
+/* 出车批次 */
+ID TruckBatch(
+    id,
+    KEY name CHAR(20),
+    description CHAR(100),
+    sys(create)
+);
+
+/* 送货单位排车批次 */
+IX * IxOrganizationTruckSetting(
+    ix,     -- TruckStaff Id
+    xi,     -- 单位id
+    ixx     -- 出车批次id
+);
+
+/* 查询排车附加任务列表(待修改分页) */
+QUERY GetOrganizationTruckStaff(
+    staff ID
+)
+RETURNS ret(
+    truckStaff ID,
+    organization ID,
+    truckBatchId ID,
+    truckBatchName CHAR(20)
+){
+    INTO ret SELECT a.ix as truckStaff, a.xi as organization, a.ixx as truckBatchId, b.name as truckBatchName
+    FROM IxOrganizationTruckSetting as a
+        join TruckBatch as b on b.id = a.ixx
+	where a.ix = staff
+	ORDER BY a.xi;
 };

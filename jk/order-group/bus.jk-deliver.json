@@ -28,7 +28,7 @@
     "deliver-done": [
         "note"
     ],
-    "pickup-detail":[
+    "pickup-detail": [
         "biz: id    -- 发运单明细",
         "biz2: id",
         " -- biz2的说明：拣货上游（发运）的上游（订单明细/exchangeDetail）的id， 因为目前出库在老系统中，而截单在新系统中，为了将老系统中的",
@@ -62,9 +62,10 @@
     "truck": [
         "warehouse: id",
         "contact: id",
+        "organization: id",
         "detail: truck-detail"
     ],
-    "truck-detail":[
+    "truck-detail": [
         "biz: id",
         "json: string"
     ],

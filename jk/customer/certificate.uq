@@ -1,0 +1,36 @@
+ID Certificate (
+    id,
+    name    char(50),
+    description char(50),
+);
+
+-- 企业办理的许可证()
+IX BuyeraccountCertificate (
+    ix,     -- buyeraccount
+    xi,     -- Certificate 
+    expiredDate date,
+    path    char(100),
+    createDate  datetime,
+);
+
+ID CertificateSource (
+    id,
+    certificate ID Certificate,     -- Certificate 
+    buyeraccount ID BuyerAccount,     -- buyeraccount
+    expiredDate date,
+    path    char(100),
+    status  tinyint,
+    creator ID,
+    createDate  datetime,
+);
+
+IDX dxPendingAuditCertificate(
+    id
+);
+
+IDX CretificateSourceAuditHistory(
+    id,
+    status  tinyint, 
+    comments char(200),
+    auditor ID,
+);
