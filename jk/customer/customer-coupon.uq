@@ -3,7 +3,7 @@ MAP CustomerCredits (
     key customer ID Customer,     -- Customer编号，不是WebUser
     key credits int not null,
     creditsCode int not null,
-    createDate date,
+    createDate datetime,
     expiredDate date,
 );
 
@@ -11,7 +11,7 @@ MAP CustomerCreditsUsed (
     key customer ID Customer,     -- Customer编号，不是WebUser
     key credits int not null,
     key saleOrderItem char(50),
-    usedDate date,
+    usedDate datetime,
 );
 
 MAP CustomerCoupon(
@@ -19,14 +19,14 @@ MAP CustomerCoupon(
     key coupon int not null,
     key couponType ID VIPCardType,
     couponCode int not null,
-    createDate date,
+    createDate datetime,
     expiredDate date,
 );
 
 MAP CustomerCouponUsed(
     key customer ID Customer,
     key coupon int not null,
-    usedDate date,
+    usedDate datetime,
 );
 
 QUERY getMyExpiredCoupon(customer ID Customer)
@@ -35,8 +35,8 @@ PAGE (
     id int,
     code int,
     types char(20),
-    createdate date, 
-    expireddate date 
+    createdate datetime, 
+    expireddate date
 ) {
     /-mysql
 
@@ -44,7 +44,7 @@ PAGE (
     CREATE TEMPORARY TABLE `_$page_getMyExpiredCoupon` ( 
         `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, 
         `coupon` BIGINT NOT NULL, 
-        `createdate` date,
+        `createdate` datetime,
         `expireddate` date) ENGINE=MyISAM;
 
     insert into `_$page_getMyExpiredCoupon`(`coupon`, `createdate`, `expireddate`)
@@ -75,7 +75,7 @@ PAGE (
     id int,
     code int,
     types char(20),
-    useddate date 
+    useddate datetime 
 ) {
     /-mysql
 
@@ -83,7 +83,7 @@ PAGE (
     CREATE TEMPORARY TABLE `_$page_getMyUsedCoupon` ( 
         `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, 
         `coupon` BIGINT NOT NULL, 
-        `useddate` date) ENGINE=MyISAM;
+        `useddate` datetime) ENGINE=MyISAM;
 
     insert into `_$page_getMyUsedCoupon`(`coupon`, `useddate`)
     select  t.coupon, t.useddate
