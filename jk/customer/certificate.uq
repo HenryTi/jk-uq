@@ -5,7 +5,7 @@ ID Certificate (
 );
 
 -- 企业办理的许可证()
-IX BuyeraccountCertificate (
+IX * BuyeraccountCertificate (
     ix,     -- buyeraccount
     xi,     -- Certificate 
     expiredDate date,
@@ -24,11 +24,12 @@ ID CertificateSource (
     createDate  datetime,
 );
 
-IDX dxPendingAuditCertificate(
-    id
+IDX * dxPendingAuditCertificate(
+    id,
+    createDate  datetime,
 );
 
-IDX CretificateSourceAuditHistory(
+IDX * CretificateSourceAuditHistory(
     id,
     status  tinyint, 
     comments char(200),
