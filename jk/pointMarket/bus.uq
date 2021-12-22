@@ -108,7 +108,7 @@ BUS poBus from 百灵威系统工程部/PointOrder
 
         if (
             currency = 5 and tradeType = 'a' and mark <> 'PR' and bCustomer = 0 and pointYear > 2020
-            and salesCategory <> '大包装'
+            and salesCategory <> '大包装' and salesCategory <> '特价申请产品'
             ){
 
             var multiple int, creditsMultiple int, promotionMultiple int;
@@ -132,7 +132,7 @@ BUS poBus from 百灵威系统工程部/PointOrder
             -- mark为C：0积分
             if (
                 mark = 'C'
-                or invoiceDesc = '预付款' or invoiceDesc = 协议返点
+                or invoiceDesc = '预付款' or invoiceDesc = '协议返点'
             
             ){
                 set lTotalPoint = 0;
