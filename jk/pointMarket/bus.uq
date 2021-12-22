@@ -108,7 +108,7 @@ BUS poBus from 百灵威系统工程部/PointOrder
 
         if (
             currency = 5 and tradeType = 'a' and mark <> 'PR' and bCustomer = 0 and pointYear > 2020
-            and salesCategory <> '大包装'
+            and salesCategory <> '大包装' and salesCategory <> '特价申请产品'
             ){
 
             var multiple int, creditsMultiple int, promotionMultiple int;
