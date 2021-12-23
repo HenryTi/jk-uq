@@ -117,13 +117,14 @@ BUS couponBus.getMatchedCredits as q into tb {
             foreach tb {
                 set creditsId = credits;
             }
+            if(not creditsId is NULL) {
+                bus couponBus.creditsUsedByCustomer set orderId = orderId, customer = endUserId, coupon = creditsId;
+                bus couponBus.creditsUsedByCustomer into orderItems add orderItemId = orderItemId;
+            }
         }
         if(not creditsId is NULL) {
             WITH IxOrderMainCustomerCoupon ixx = orderMainId ix = endUserId xi = creditsId; 
             WITH IxOrderDetailCoupon ix = orderDetailId xi = creditsId;
-
-            bus couponBus.creditsUsedByCustomer set orderId = orderId, customer = endUserId, coupon = creditsId;
-            bus couponBus.creditsUsedByCustomer into orderItems add orderItemId = orderItemId;
         }
 
         if(ifnull(lOrderDetailID, 0) = 0 or ifnull(lCoupon, 0) <> ifnull(creditsId, 0)){
