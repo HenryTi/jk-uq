@@ -26,6 +26,7 @@ ID ReceiveDetail GLOBAL (
     main ID ReceiveMain,
     orderDetail ID OrderDetail,
     amount DEC(18,4),
+    currency ID,
     createDate TIMESTAMP,
 );
 

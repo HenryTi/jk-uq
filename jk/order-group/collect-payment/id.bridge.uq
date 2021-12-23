@@ -30,7 +30,7 @@ ACCEPT innerOrderPaid {
         SET receiveDetailId = opposite;
     }
     WITH ReceiveDetail ID = receiveDetailId 
-        SET main = receiveMainId, orderDetail = orderDetailId, amount = tAmount, createDate = from_unixtime(createDate/1000);
+        SET main = receiveMainId, orderDetail = orderDetailId, amount = tAmount, currency = currency, createDate = from_unixtime(createDate/1000);
     WITH DxOrderDetail as a ID = orderDetailId set a.receiveDone += tAmount;
 
     BUS JkOrderBus.[receive-done] STAMP createDate/1000;
