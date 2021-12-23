@@ -32,3 +32,14 @@ bus cBus from 百灵威系统工程部/coupon
     ACCEPT [customer-bounded] {
         PROC ProcCustomerBound(customer, salesman, boundType);
     };
+
+BUS ps2Bus from [百灵威系统工程部]/PointShop2
+    QUERY getCreditsMultiple {
+        var multiple int;
+        if exists(select 1 from coupon where id = credits and type = 2) {
+            set multiple = 2;
+        } else {
+            set multiple = 0;
+        }
+        into bus select multiple;
+    };
