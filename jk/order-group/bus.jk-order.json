@@ -8,6 +8,7 @@
         "no: string",
         "seller: id",
         "currency: id",
+        "type: id",
         "detail: order-detail -- { name: detail, type: array, fields: order-detail }"
     ],
     "order-detail": [
@@ -16,7 +17,8 @@
         { "name": "product", "type": "id", "-": "my be undefined when item is ID" },
         { "name": "quantity", "type": "number" },
         { "name": "price", "type": "number" },
-        { "name": "amount", "type": "number" }
+        { "name": "amount", "type": "number" },
+        { "name": "amountAfterTax", "type": "number" }
     ],
     "return-detail": [
         "-- return detail id",
