@@ -87,7 +87,7 @@ returns ret (
     where   c.code = code;
 
     var orderX char(50);   --被使用的订单
-    set orderX = a.ix from IxCouponUsed as a where a.ix = id and a.xi = customer limit 1;
+    set orderX = a.xi from IxCouponUsed as a where a.ixx = id and a.ix = customer limit 1;
 
     var salesmanBounded ID [$user];    --客户的当前轻代理
     set salesmanBounded = c.salesman from CustomerBound as c 
@@ -141,9 +141,9 @@ returns ret (
     customer ID,
     usedDate datetime
 ) {
-    into ret  select  a.ix as coupon, a.xi as customer, a.usedDate 
+    into ret  select  a.ixx as coupon, a.ix as customer, a.usedDate 
     from    IxCouponUsed as a
-    where   a.ix = coupon;
+    where   a.ixx = coupon;
 };
 
 
