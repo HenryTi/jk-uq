@@ -31,3 +31,10 @@ HISTORY WebUserBoundHistory (
     boundType   ENUM EnumBoundType,
     operation   tinyint,    -- 1:绑定；0:解绑
 );
+
+-- 销售所属客户的最后一次下单到当前时间的天数（此表需每日更新）
+IX * IxOrderIntervalSum (
+    ix, -- Salesman,
+    xi,     -- 最后一次下单距离今天的天数
+    value int,
+);
