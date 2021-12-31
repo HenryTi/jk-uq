@@ -240,7 +240,7 @@ BUS JkOrderBus from 百灵威系统工程部/[jk-order]
 
                 -- 订单在订单积分记录中，有记录且总积分值大于0
                 if exists(select 1 from DxOrderDetail as a where a.id = orderdetail and a.totalPoint > 0) {
-                    set rPoint = b.point, lPoint = lReceiveValue * b.multiple
+                    set rPoint = ifnull(b.point, 0), lPoint = lReceiveValue * b.multiple
                         , customer = a.endUser, pointYear = year(a.createDate)
                         , orderMainNo = a.orderMainNo, orderDetailNo = a.orderDetailNo
                         , orderDetailId = orderdetail

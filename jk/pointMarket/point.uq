@@ -132,7 +132,7 @@ HISTORY PointHistoryByCustomer (
 
 IDX * DxOrderDetail (
     id, -- order detailId
-    point int ,
+    point int default 0,
     totalPoint int ,
     multiple int,
 );
