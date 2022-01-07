@@ -49,7 +49,7 @@ BUS webUserBus from [百灵威系统工程部]/WebUser
             delete t from PointBook as t where t.webuser = webuser and t.pointYear = pointYear;
         }
         foreach (
-            var pointYear int, point int, comments int, source int, date datetime
+            var pointYear int, point int, comments char, source int, date datetime
             of select a.pointYear, a.point, a.comments, a.source, a.date
             from PointHistory as a where a.webUser = webUser
         ) {
