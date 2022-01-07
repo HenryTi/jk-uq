@@ -1,6 +1,6 @@
 IDX CustomerBound (
     ID,     -- customer
-    salesman ID,
+    salesman ID,    -- employee id
     boundDate   date,
     boundDays   smallint,
     boundType   ENUM EnumBoundType
