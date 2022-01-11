@@ -177,10 +177,10 @@ BUS couponBus.getMatchedCredits as q into tb {
         set specCost = specCost / (1 + taxRate);
 
         SET priceRMB = price * a.rate from CurrencyExchangeRate as a where a.currency = currency and a.targetCurrency = 5;
-        if (tradeType in ('a', 'd', 'w') {
+        if (tradeType in ('a', 'd', 'w')) {
             set priceRMB = priceRMB / (1 + taxRate);
         }
-        
+
         IF(specCost > priceRMB * (1 - 0.08))
             set specCost = priceRMB * (1 - 0.08);
         
