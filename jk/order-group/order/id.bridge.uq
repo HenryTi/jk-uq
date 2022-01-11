@@ -167,14 +167,23 @@ BUS couponBus.getMatchedCredits as q into tb {
                     , amountAfterTax = quantity * price / (1 + taxRate);
     }
     if(abs(ifnull(lBottomPrice, 0) - ifnull(bottomPrice, 0)) > 0.001 or abs(ifnull(lPrice, 0) - ifnull(price, 0)) > 0.001 or $importing = 1){
+
         -- cost的计算方法： 提成c = (price - cost) * 0.08 = max(price - bottomPrice, price * 0.08) * 0.08;
         -- 所以price - cost = max(price - bottomPrice, price * 0.08) => cost = price - max(price - bottomPrice, price * 0.08) =>
         -- cost = min(bottomPrice, price * (1-0.08)) 
+
         VAR specCost dec(18, 4), priceRMB dec(18, 4);
         SET specCost = bottomPrice * a.rate from CurrencyExchangeRate as a where a.currency = bottomPriceCurrency and a.targetCurrency = 5;
+        set specCost = specCost / (1 + taxRate);
+
         SET priceRMB = price * a.rate from CurrencyExchangeRate as a where a.currency = currency and a.targetCurrency = 5;
+        if (tradeType in ('a', 'd', 'w') {
+            set priceRMB = priceRMB / (1 + taxRate);
+        }
+        
         IF(specCost > priceRMB * (1 - 0.08))
             set specCost = priceRMB * (1 - 0.08);
+        
         /*
         BUS JkOrderBus.[order-sale-cost] set order = orderMainId;
         BUS JkOrderBus.[order-sale-cost] into [detail]
@@ -183,7 +192,7 @@ BUS couponBus.getMatchedCredits as q into tb {
 
         BUS JkOrderBus.[order-sale-margin] set order = orderMainId;
         BUS JkOrderBus.[order-sale-margin] into [detail]
-            ADD [orderdetail] = orderDetailId, [value] = (priceRMB - specCost) / (1 + taxRate);
+            ADD [orderdetail] = orderDetailId, [value] = (priceRMB - specCost);
     }
 }
 ACCEPT returnChanged {
