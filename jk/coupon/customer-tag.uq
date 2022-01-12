@@ -1,0 +1,20 @@
+
+-- 销售人员自定义tag来管理自己的客户
+ID CustomerTag (
+    id,
+    name    char(20),
+    description char(100),
+    sys(create, update)
+);
+
+-- 销售人员创建的标签 
+IX SalesmanCustomerTag (
+    ix,     -- Salesman
+    xi,     -- CustomerTag
+);
+
+-- 客户被销售人员打的标签
+IX CustomerTagCustomer (
+    ix,     -- CustomerTag
+    xi,     -- Customer
+);
