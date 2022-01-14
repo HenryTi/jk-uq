@@ -38,3 +38,20 @@ IX * IxOrderIntervalSum (
     xi,     -- 最后一次下单距离今天的天数
     value int,
 );
+
+Query getCustomerBoundByMan ( keyWord char(100), start Date, end Date )
+PAGE (
+    id bigint start 0,
+    customer ID Customer,
+    salesman    ID,
+    boundDate   Date,
+    boundDays   smallint,
+    boundType   ENUM EnumBoundType,
+) {
+    PAGE select cb.id, cb.id as customer, cb.salesman, cb.boundDate, cb.boundDays, cb.boundType
+    from    CustomerBound as cb
+    where   1=1 and cb.salesman = $user and  cb.boundDate < start and  cb.boundDate > end
+            and cb.id > $pageStart 
+    order by cb.id
+    limit $pageSize;
+};
