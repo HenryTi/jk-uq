@@ -167,7 +167,7 @@ BUS couponBus.getMatchedCredits as q into tb {
                     , amountAfterTax = quantity * price / (1 + taxRate);
     }
     if(abs(ifnull(lBottomPrice, 0) - ifnull(bottomPrice, 0)) > 0.001 or abs(ifnull(lPrice, 0) - ifnull(price, 0)) > 0.001 
-        or from_unixtime(createDate) < '2021-09-01'  -- 该日期之前未发送order-sale-margin bus(发送的是order-sale-cost)，所以补上
+        or from_unixtime(createDate) < '2021-11-21'  -- 该日期之前未发送order-sale-margin bus(发送的是order-sale-cost)，所以补上
         or $importing = 1){
 
         -- cost的计算方法： 提成c = (price - cost) * 0.08 = max(price - bottomPrice, price * 0.08) * 0.08;
@@ -176,7 +176,7 @@ BUS couponBus.getMatchedCredits as q into tb {
 
         VAR specCost dec(18, 4), priceRMB dec(18, 4);
         SET specCost = bottomPrice * a.rate from CurrencyExchangeRate as a where a.currency = bottomPriceCurrency and a.targetCurrency = 5;
-        set specCost = ifnull(specCost, 0) / (1 + taxRate);
+        set specCost = specCost / (1 + taxRate);
 
         SET priceRMB = price * a.rate from CurrencyExchangeRate as a where a.currency = currency and a.targetCurrency = 5;
         set priceRMB = ifnull(priceRMB, 0);
@@ -184,7 +184,7 @@ BUS couponBus.getMatchedCredits as q into tb {
             set priceRMB = priceRMB / (1 + taxRate);
         }
 
-        IF(specCost > priceRMB * (1 - 0.08))
+        IF(specCost is null or specCost > priceRMB * (1 - 0.08))
             set specCost = priceRMB * (1 - 0.08);
         
         /*
