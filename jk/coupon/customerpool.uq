@@ -1,0 +1,12 @@
+-- 池
+ID Pool(
+    id,
+    name char(50),
+    description char(100),
+);
+
+--客户与池的关系
+IX CustomerPool(
+    ix,  -- ID Pool,
+    xi   -- ID Customer,
+);

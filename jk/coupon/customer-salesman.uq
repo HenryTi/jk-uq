@@ -7,6 +7,7 @@ IDX CustomerBound (
 );
 
 ENUM EnumBoundType (assign = 1, coupon = 2);
+ENUM EnumBoundStrength (strong = 1, weak = 2);
 
 HISTORY CustomerBoundHistory (
     date,
