@@ -1,4 +1,5 @@
 {
+    "$": "百灵威系统工程部/pointShop",
     "pointExchangeSheet": [
         "id: id",
         "exchangeMainId: id",
