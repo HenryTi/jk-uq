@@ -59,16 +59,14 @@ PROC ProcCustomerBound(customer ID, salesman ID, boundType smallint) {
     }
 };
 
-/*
 -- 检查变为弱绑定的客户
 PROC CheckWeakBound() {
     BUS JkCustomerPool.[bound-strength-changed] LOCAL;
     FOR(VAR customer ID, salesman ID OF 
-    select customer, salesman from CustomerBound 
-    where boundDate < dateadd(day, boundDays * -1, date(now())
-    and boundDate > dateadd(day, (boundDays + 1) * -1, date(now())) {
+    select id as customer, salesman from CustomerBound 
+    where boundDate < dateadd(day, boundDays * -1, date(now()))
+    and boundDate > dateadd(day, (boundDays + 1) * -1, date(now()))) {
         BUS JkCustomerPool.[bound-strength-changed] into detail 
             ADD customer = customer, salesman = salesman, strength = EnumBoundStrength.weak;
     }
-}
-*/
+};
