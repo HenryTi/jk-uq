@@ -11,7 +11,7 @@ bus fiReceivable from 百灵威系统工程部/FiReceivable
     };
 
 
-BUS JkDeliverBus ver 0.2 from 百灵威系统工程部/[jk-deliver]
+BUS JkDeliverBus ver 0.3 from 百灵威系统工程部/[jk-deliver]
 ACCEPT [deliver-done] {
     FOR detail {
         VAR orderDetail ID, orderMain ID;
