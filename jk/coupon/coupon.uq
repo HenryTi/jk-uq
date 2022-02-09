@@ -71,27 +71,28 @@ returns ret (
     var result      bigint,     --返回结果
         id              bigint,     --优惠码id
         coupon          char(8),    --优惠码
-        type ENUM EnumCouponType,            --优惠码类型
+        type ENUM EnumCouponType,          --优惠码类型
         validityDate    datetime,   --有效期
         isValid         smallint,   --是否有效
-        creator ID       [$user];    --优惠码的轻代理
+        creator ID       [$user];    -- 券的生产者
 
     set     id = c.id,
             coupon = c.code,
             type = c.type,
             validityDate = c.validityDate,    --有效期
             isValid = c.isValid,              --是否有效
-            creator = b.xi
+            creator = c.creator 
     from    Coupon as c
-            left join IxWebuserEmployeeCopy as b on c.creator = b.ix
     where   c.code = code;
 
     var orderX char(50);   --被使用的订单
-    set orderX = a.ix from IxCouponUsed as a where a.ix = id and a.xi = customer limit 1;
+    set orderX = a.xi from IxCouponUsed as a where a.ixx = id and a.ix = customer limit 1;
 
     var salesmanBounded ID [$user];    --客户的当前轻代理
-    set salesmanBounded = c.salesman from CustomerBound as c 
-    where c.ID = customer and c.boundDate > dateadd(day, c.boundDays * -1, now()) 
+    set     salesmanBounded = b.ix 
+    from    CustomerBound as c 
+            left join IxWebuserEmployeeCopy as b on c.salesman = b.xi
+    where   c.ID = customer and c.boundDate > dateadd(day, c.boundDays * -1, now()) 
     limit 1; --当前轻代理
 
     if (coupon is null) {
@@ -141,9 +142,9 @@ returns ret (
     customer ID,
     usedDate datetime
 ) {
-    into ret  select  a.ix as coupon, a.xi as customer, a.usedDate 
+    into ret  select  a.ixx as coupon, a.ix as customer, a.usedDate 
     from    IxCouponUsed as a
-    where   a.ix = coupon;
+    where   a.ixx = coupon;
 };
 
 

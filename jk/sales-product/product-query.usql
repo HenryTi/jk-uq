@@ -151,7 +151,16 @@ begin
     truncate table tv_productcache;
 
     insert  into tv_productcache(`$unit`, product, salesregion, level, hasStock)
-    select  p.`$unit`, p.id, br.salesregion, br.level, 0
+    select  p.`$unit`, p.id, br.salesregion, br.level, IFNULL((
+                SELECT 1 
+                FROM    warehouse.tv_salesregionwarehouse sw 
+                        inner join warehouse.tv_productinventory AS piv ON piv.`$unit` = sw.`$unit`
+                            AND piv.warehouse = sw.warehouse
+                WHERE   piv.`$unit` = p.`$unit` AND piv.product = p.id AND sw.salesregion = br.salesregion
+                        AND sw.`$unit` = br.`$unit`
+                        AND piv.quantity > 0 
+                LIMIT 1 
+            ), 0 ) AS hasstock
     from    tv_productx as p
             inner join tv_brandsalesregion as br on p.`$unit` = br.`$unit` and p.brand = br.brand
     where   p.isvalid = 1

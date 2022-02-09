@@ -14,7 +14,7 @@ ID DeliverMain GLOBAL(
 	sys(create),
 );
 
-IDX DxDeliverMain (
+IDX * DxDeliverMain (
     id,										-- deliver main id
     rows SMALLINT DEFAULT 0,				-- Deliver中包含的DeliverDetail个数
     pickRows SMALLINT DEFAULT 0,			-- 已拣货行数
@@ -40,23 +40,23 @@ ID DeliverDetail GLOBAL(
     index idx_biz(biz),
 );
 
-IDX DxDeliverDetail (
+IDX * DxDeliverDetail (
     id,
 	deliverDone DEC(12,2) DEFAULT 0,		-- 已发
-    pickDone dec(12, 2) DEFAULT 0 SUM,
+    pickDone dec(12, 2) DEFAULT 0,			-- SUM
 	checkDone dec(12, 2) DEFAULT 0,			-- 已验货
 	tallyDone dec(12, 2) DEFAULT 0,			-- 已理
 	tallyState TINYINT DEFAULT 0,			-- 理货状态：0 未完成，1已完成;
-	deliverReturn DEC(12,2) SUM,			-- 应退货
+	deliverReturn DEC(12,2),				-- 应退货 SUM
     returnDone dec(12, 2) DEFAULT 0,
 );
 
 -- 处理中的发货单
-IDX DxDelivering (
+IDX * DxDelivering (
     id,
 );
 
-IX IxUserWarehouse (
+IX * IxUserWarehouse (
 	ix User,
 	xi Warehouse,
 );

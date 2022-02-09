@@ -9,6 +9,7 @@ ID OrderMainEx GLOBAL (
     orderType int,                  -- 定义见jk-me中 OrderType
     carrier ID,
     commentsAboutDeliver   char(1000),
+    invoiceDesc char(30),           -- 发票说明
     createDate TIMESTAMP,
 );
 
@@ -17,6 +18,7 @@ ID OrderDetailEx GLOBAL (
     KEY orderItemId CHAR(50),       -- 对应Ex系统的orderItemId
     endUser ID,
     brand ID,                       -- 品牌id，应该在product里面带
+    amountAfterTax dec(18 ,4),
     retail DEC(12,2),               -- TODO:下面的6个字段应该转移到OrderDetail的一个专门的IDX中，不应该放在这个Ex大杂烩中
     retailCurrency ID,
     bottomPrice DEC(12,2),
@@ -28,6 +30,7 @@ ID OrderDetailEx GLOBAL (
     tradeType CHAR(10),
     taxRate DEC(6,2),
     promotionId CHAR(20),
+    salesCategory CHAR(50),         --销售类别
     createDate TIMESTAMP,
 );
 
@@ -74,6 +77,7 @@ BUS couponBus.getMatchedCredits as q into tb {
         , orderType = orderType
         , carrier = carrier
         , commentsAboutDeliver = commentsAboutDeliver
+        , invoiceDesc = invoiceDesc
         , createDate=from_unixtime(createDate);
 
     WITH OrderDetail ID=orderDetailId SET main=orderMainId
@@ -87,6 +91,7 @@ BUS couponBus.getMatchedCredits as q into tb {
     WITH OrderDetailEx ID=orderDetailId SET orderItemId=orderItemId
         , endUser = endUser
         , brand=brand
+        , amountAfterTax = quantity * price / (1 + taxRate)
         , retail=retail
         , retailCurrency=retailCurrency
         , bottomPrice=bottomPrice
@@ -98,6 +103,7 @@ BUS couponBus.getMatchedCredits as q into tb {
         , tradeType=tradeType
         , taxRate=taxRate
         , promotionId=promotionId
+        , salesCategory = salesCategory
         , createDate=from_unixtime(createDate);
 
     WITH DxOrderDetail ID=orderDetailId SET deliver=quantity;
@@ -111,13 +117,14 @@ BUS couponBus.getMatchedCredits as q into tb {
             foreach tb {
                 set creditsId = credits;
             }
+            if(not creditsId is NULL) {
+                bus couponBus.creditsUsedByCustomer set orderId = orderId, customer = endUserId, coupon = creditsId;
+                bus couponBus.creditsUsedByCustomer into orderItems add orderItemId = orderItemId;
+            }
         }
         if(not creditsId is NULL) {
             WITH IxOrderMainCustomerCoupon ixx = orderMainId ix = endUserId xi = creditsId; 
             WITH IxOrderDetailCoupon ix = orderDetailId xi = creditsId;
-
-            bus couponBus.creditsUsedByCustomer set orderId = orderId, customer = endUserId, coupon = creditsId;
-            bus couponBus.creditsUsedByCustomer into orderItems add orderItemId = orderItemId;
         }
 
         if(ifnull(lOrderDetailID, 0) = 0 or ifnull(lCoupon, 0) <> ifnull(creditsId, 0)){
@@ -140,29 +147,46 @@ BUS couponBus.getMatchedCredits as q into tb {
             , orderMainId = orderMainId, orderMainNo = orderId, customer = endUserId
             , brand = brand, product = product, item = pack, quantity = quantity, price = price, retail = retail
             , currency = currency, coupon = creditsId, mark = mark
-            , tradeType = tradeType, createDate = createDate;
+            , tradeType = tradeType
+            , invoiceDesc = invoiceDesc, salesCategory = salesCategory
+            , createDate = createDate;
     }
 
     if(buyerAccount <> ifnull(lCustomerAccount, 0) or quantity <> ifnull(lQuantity, 0) or abs(ifnull(price, 0) - ifnull(lPrice, 0)) > 0.001
     or $importing = 1){
         BUS JkOrderBus.order STAMP createDate;
-        BUS JkOrderBus.order SET id=orderMainId, no=orderId, customerAccount = buyerAccount, seller = seller, type = orderType; -- TODO: 缺少Contact
+        BUS JkOrderBus.order SET id=orderMainId, no=orderId, customerAccount = buyerAccount
+        , seller = seller, currency = currency, type = orderType; -- TODO: 缺少Contact
         BUS JkOrderBus.order INTO detail 
             ADD id = orderDetailId
                     , item = pack
                     , product = product
                     , quantity = quantity
                     , price = price
-                    , amount = quantity*price;  -- TODO:缺少lotNumber等
+                    , amount = quantity * price  -- TODO:缺少lotNumber等
+                    , amountAfterTax = quantity * price / (1 + taxRate);
     }
-    if(abs(ifnull(lBottomPrice, 0) - ifnull(bottomPrice, 0)) > 0.001 or abs(ifnull(lPrice, 0) - ifnull(price, 0)) > 0.001 or $importing = 1){
+    if(abs(ifnull(lBottomPrice, 0) - ifnull(bottomPrice, 0)) > 0.001 or abs(ifnull(lPrice, 0) - ifnull(price, 0)) > 0.001 
+        or from_unixtime(createDate) < '2021-11-21'  -- 该日期之前未发送order-sale-margin bus(发送的是order-sale-cost)，所以补上
+        or $importing = 1){
+
         -- cost的计算方法： 提成c = (price - cost) * 0.08 = max(price - bottomPrice, price * 0.08) * 0.08;
         -- 所以price - cost = max(price - bottomPrice, price * 0.08) => cost = price - max(price - bottomPrice, price * 0.08) =>
         -- cost = min(bottomPrice, price * (1-0.08)) 
-        VAR specCost dec(18, 4);
-        SET specCost = bottomPrice;
-        IF(specCost > price * (1 - 0.08))
-            set specCost = price * (1 - 0.08);
+
+        VAR specCost dec(18, 4), priceRMB dec(18, 4);
+        SET specCost = bottomPrice * a.rate from CurrencyExchangeRate as a where a.currency = bottomPriceCurrency and a.targetCurrency = 5;
+        set specCost = specCost / (1 + taxRate);
+
+        SET priceRMB = price * a.rate from CurrencyExchangeRate as a where a.currency = currency and a.targetCurrency = 5;
+        set priceRMB = ifnull(priceRMB, 0);
+        if (tradeType in ('a', 'd', 'w')) {
+            set priceRMB = priceRMB / (1 + taxRate);
+        }
+
+        IF(specCost is null or specCost > priceRMB * (1 - 0.08))
+            set specCost = priceRMB * (1 - 0.08);
+        
         /*
         BUS JkOrderBus.[order-sale-cost] set order = orderMainId;
         BUS JkOrderBus.[order-sale-cost] into [detail]
@@ -171,7 +195,7 @@ BUS couponBus.getMatchedCredits as q into tb {
 
         BUS JkOrderBus.[order-sale-margin] set order = orderMainId;
         BUS JkOrderBus.[order-sale-margin] into [detail]
-            ADD [orderdetail] = orderDetailId, [value] = (price - specCost) / (1 + taxRate);
+            ADD [orderdetail] = orderDetailId, [value] = (priceRMB - specCost);
     }
 }
 ACCEPT returnChanged {

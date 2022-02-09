@@ -130,10 +130,10 @@ HISTORY PointHistoryByCustomer (
 );
 
 
-IDX DxOrderDetail (
+IDX * DxOrderDetail (
     id, -- order detailId
-    point int sum log,
-    totalPoint int sum,
+    point int default 0,
+    totalPoint int ,
     multiple int,
 );
 
@@ -148,10 +148,10 @@ HISTORY OrderDetailPointHistory (
 );
 
 -- 退货订单积分表,2021年9月15日，D72
-IDX DxReOrderDetail (
+IDX * DxReOrderDetail (
     id, -- order detailId
-    point int sum log,
-    totalPoint int sum,
+    point int,
+    totalPoint int ,
 );
 
 -- 退货订单积分变化表(针对order订单明细),2021年9月15日，D72

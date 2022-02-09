@@ -65,6 +65,6 @@ IDX DxOrderDetail ver 0.1 (
 	invoice DEC(12,2),					-- 应开票
 	invoiceDone DEC(12,2),				-- 已开票
 	invoiceTime TIMESTAMP,				-- 开票时间
-	invoiceReturn DEC(12,2),			-- 应退票
-	invoiceReturnDone DEC(12,2),		-- 已退票
+	invoiceReturn DEC(12,2),		-- 应退票
+	invoiceReturnDone DEC(12,2),	-- 已退票
 );

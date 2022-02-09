@@ -27,7 +27,8 @@
     ],
     "WebUserAuditPass": [
         { "name": "webUser", "type": "id" },
-        { "name": "customer", "type": "id" }
+        { "name": "customer", "type": "id" },
+        { "name": "buyerAccount", "type": "id" }
     ],
     "WebUserInvoice": [
         { "name": "webUser", "type": "id" },

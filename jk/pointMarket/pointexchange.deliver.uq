@@ -1,4 +1,4 @@
-IX ExchangeDetailDeliver (
+IX * ExchangeDetailDeliver (
     ix,     -- pointExchangeDetail
     xi,     -- deliverDetail
 	deliverDone DEC(12,2),				-- 已发

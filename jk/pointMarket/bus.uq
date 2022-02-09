@@ -49,7 +49,7 @@ BUS webUserBus from [百灵威系统工程部]/WebUser
             delete t from PointBook as t where t.webuser = webuser and t.pointYear = pointYear;
         }
         foreach (
-            var pointYear int, point int, comments int, source int, date datetime
+            var pointYear int, point int, comments char, source int, date datetime
             of select a.pointYear, a.point, a.comments, a.source, a.date
             from PointHistory as a where a.webUser = webUser
         ) {
@@ -103,7 +103,13 @@ BUS poBus from 百灵威系统工程部/PointOrder
 
         -- 订单积分条件的判定
         -- 销售币种为RMB、国内正常销售业务,非积分黑名单客户，允许积分
-        if (currency = 5 and tradeType = 'a' and mark <> 'PR' and bCustomer = 0 and pointYear > 2020){
+        -- PTM9615649, 发票说明为预付款、协议返点，以及询报价单生成的合同
+        -- PTM9711078,从销售报价系统中导数据做的合同（大包装和多瓶）不参与积分，
+
+        if (
+            currency = 5 and tradeType = 'a' and mark <> 'PR' and bCustomer = 0 and pointYear > 2020
+            and salesCategory <> '大包装' and salesCategory <> '特价申请产品'
+            ){
 
             var multiple int, creditsMultiple int, promotionMultiple int;
             foreach cm {
@@ -124,7 +130,11 @@ BUS poBus from 百灵威系统工程部/PointOrder
 
             var lTotalPoint int, diffPoint dec(12, 2);
             -- mark为C：0积分
-            if (mark = 'C'){
+            if (
+                mark = 'C'
+                or invoiceDesc = '预付款' or invoiceDesc = '协议返点'
+            
+            ){
                 set lTotalPoint = 0;
             } else {
                 set lTotalPoint = price * quantity * multiple;
@@ -230,7 +240,7 @@ BUS JkOrderBus from 百灵威系统工程部/[jk-order]
 
                 -- 订单在订单积分记录中，有记录且总积分值大于0
                 if exists(select 1 from DxOrderDetail as a where a.id = orderdetail and a.totalPoint > 0) {
-                    set rPoint = b.point, lPoint = lReceiveValue * b.multiple
+                    set rPoint = ifnull(b.point, 0), lPoint = lReceiveValue * b.multiple
                         , customer = a.endUser, pointYear = year(a.createDate)
                         , orderMainNo = a.orderMainNo, orderDetailNo = a.orderDetailNo
                         , orderDetailId = orderdetail

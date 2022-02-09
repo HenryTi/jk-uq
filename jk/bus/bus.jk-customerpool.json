@@ -1,0 +1,12 @@
+{
+    "$": "百灵威系统工程部/jk-customerpool",
+    "bound-strength-changed": [
+        "id: id",
+        "detail: bound-strength-changed-detail"
+    ],
+    "bound-strength-changed-detail": [
+        "customer: id",
+        "salesman: id",
+        "strength: id"
+    ]
+}

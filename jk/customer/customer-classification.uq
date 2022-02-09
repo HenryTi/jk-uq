@@ -52,6 +52,7 @@ MAP CustomerResearch (
     createTime datetime
 );
 
+-- 徐蓉弄的“研究领域”和原“研究领域”的关系，也没用了
 MAP ResearchDomain (
     key domain ID Domain,
     key research ID Research 

@@ -1,0 +1,5 @@
+-- 贸易战单位黑名单 
+IDX OranizationBackListTradeWar(
+    id,
+    description char(50),
+);

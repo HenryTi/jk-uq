@@ -1,0 +1,23 @@
+{
+    "$": "百灵威系统工程部/PointOrder",
+    "orderPointChanged": [
+        "orderDetailId: id",
+        "orderDetailNo: string",
+        "orderMainId: id",
+        "orderMainNo: string",
+        "customer: id",
+        "brand: id",
+        "product: id",
+        "item: id",
+        "quantity: number",
+        "price: number",
+        "retail: number",
+        "currency: id",
+        "coupon: id",
+        "mark: string",
+        "tradeType: string",
+        "invoicedesc: string",
+        "salescategory: string",
+        "createDate: string"
+    ]
+}

@@ -1,31 +1,72 @@
+/*
+-- 这个ACT应该是不再使用了，要删除
 ACT AcceptCustomerBounded(customer ID, salesman ID, boundType smallint) {
     PROC ProcCustomerBound(customer, salesman, boundType);
 };
+*/
 
 PROC ProcCustomerBound(customer ID, salesman ID, boundType smallint) {
     /*
-        * 处理逻辑：看当前客户有无绑定，无绑定的，直接绑定到传入的saleeman和绑定类型；有绑定的，看当前绑定和传入的saleman是否相同，
-        * 相同的，直接延期；不同的，看当前绑定是否过期，过期且传入绑定类型为coupon的，换绑；
+        * 处理逻辑：看当前客户有无绑定：
+        * 无绑定的，直接绑定到传入的saleeman和绑定类型；
+        * 有绑定的，看当前绑定和传入的saleman是否相同，相同的，看传入绑定类型，若为coupon，则延期，否则不延期；
+        *   不同的，(1)看当前绑定是否过期，过期且传入绑定类型为coupon的，或者(2)传入绑定类型和原绑定类型均为assign的(表示内部分配换人了)，换绑；
     */
     -- 获取tonva系统中客户当前绑定信息
-    VAR currentBound ID, boundDate date, boundDays smallint;
-    SET currentBound = t.salesman, boundDate = t.boundDate, boundDays = t.boundDays
+    VAR currentBound ID, boundDate date, boundDays smallint, currentBoundType ENUM EnumBoundType;
+    SET currentBound = t.salesman, boundDate = t.boundDate, boundDays = t.boundDays, currentBoundType = boundType
     from CustomerBound as t where t.ID = customer;
 
     if(currentBound is null){
         WITH CustomerBound as a ID = customer 
             set a.salesman = salesman, a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
         HISTORY CustomerBoundHistory set customer = customer, boundTo = salesman, boundType = boundType, operation = 1;
+
+        BUS JkCustomerPool.[bound-strength-changed] into detail 
+            ADD customer = customer, salesman = salesman, strength = EnumBoundStrength.strong;
+        BUS JkCustomerPool.[bound-strength-changed] LOCAL;
     }else{
         if(currentBound <> salesman){
             if(boundType = EnumBoundType.coupon and dateadd(day, boundDays, boundDate) < date(now())) {
                 WITH CustomerBound as a ID = customer 
                     set a.salesman = salesman, a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
                 HISTORY CustomerBoundHistory set customer = customer, boundTo = salesman, boundType = boundType, operation = 1;
+
+                BUS JkCustomerPool.[bound-strength-changed] into detail 
+                    ADD customer = customer, salesman = salesman, strength = EnumBoundStrength.strong;
+                BUS JkCustomerPool.[bound-strength-changed] LOCAL;
+            }
+
+            if(boundType = EnumBoundType.assign and currentBoundType = EnumBoundType.assign){
+                WITH CustomerBound as a ID = customer 
+                    set a.salesman = salesman, a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
+                HISTORY CustomerBoundHistory set customer = customer, boundTo = salesman, boundType = boundType, operation = 1;
+
+                BUS JkCustomerPool.[bound-strength-changed] into detail 
+                    ADD customer = customer, salesman = salesman, strength = EnumBoundStrength.strong;
+                BUS JkCustomerPool.[bound-strength-changed] LOCAL;
             }
         }else{
-            WITH CustomerBound as a ID = customer 
-                set a.salesman = salesman, a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
+            if(boundType = EnumBoundType.coupon) {
+                WITH CustomerBound as a ID = customer 
+                    set a.salesman = salesman, a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
+
+                BUS JkCustomerPool.[bound-strength-changed] into detail 
+                    ADD customer = customer, salesman = salesman, strength = EnumBoundStrength.strong;
+                BUS JkCustomerPool.[bound-strength-changed] LOCAL;
+            }
         }
+    }
+};
+
+-- 检查变为弱绑定的客户
+PROC CheckWeakBound() {
+    BUS JkCustomerPool.[bound-strength-changed] LOCAL;
+    FOR(VAR customer ID, salesman ID OF 
+    select id as customer, salesman from CustomerBound 
+    where boundDate < dateadd(day, boundDays * -1, date(now()))
+    and boundDate > dateadd(day, (boundDays + 1) * -1, date(now()))) {
+        BUS JkCustomerPool.[bound-strength-changed] into detail 
+            ADD customer = customer, salesman = salesman, strength = EnumBoundStrength.weak;
     }
 };

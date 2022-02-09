@@ -1,0 +1,18 @@
+{
+    "$": "百灵威系统工程部/common",
+    "getRmbRate": {
+        "param": [
+            { "name": "year", "type": "number" },
+            { "name": "month", "type": "number" },
+            { "name": "currencies", "type": "array", "fields": "currencyType" }
+         ],
+        "returns": [{ "name": "currencyRate", "type": "array", "fields": "currencyRateType" }]
+    },
+    "currencyType": [
+        { "name": "currency", "type": "id" }
+    ],
+    "currencyRateType": [
+        { "name": "currency", "type": "id" },
+	{ "name": "rate", "type": "number" }
+    ]
+}
