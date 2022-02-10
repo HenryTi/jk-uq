@@ -4,7 +4,8 @@ IX CustomerBound (
     boundDate   date,
     boundDays   smallint,
     boundType   ENUM EnumBoundType,
-    INDEX idx_xi(ix) UNIQUE,
+    INDEX idx_ix(ix) UNIQUE,
+    INDEX idx_xi(xi),
 );
 
 ENUM EnumBoundType (assign = 1, coupon = 2);
