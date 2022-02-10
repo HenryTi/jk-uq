@@ -14,14 +14,14 @@ PROC ProcCustomerBound(customer ID, salesman ID, boundType smallint) {
     */
     -- 获取tonva系统中客户当前绑定信息
     VAR currentBound ID, boundDate date, boundDays smallint, currentBoundType ENUM EnumBoundType;
-    SET currentBound = t.ix, boundDate = t.boundDate, boundDays = t.boundDays, currentBoundType = boundType
-    from IxSalesCustomer as t where t.xi = customer;
+    SET currentBound = t.xi, boundDate = t.boundDate, boundDays = t.boundDays, currentBoundType = boundType
+    from CustomerBound as t where t.ix = customer;
 
     if(currentBound is null){
-        WITH IxSalesCustomer as a ix = salesman xi = customer 
+        WITH CustomerBound as a ix = customer xi = salesman 
             set a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
-        VAR customerBoundId ID = ID(CustomerBound new);
-        WITH CustomerBound as a ID = customerBoundId 
+        VAR customerBoundHistoryId ID = ID(CustomerBoundHistory new);
+        WITH CustomerBoundHistory as a ID = customerBoundHistoryId 
             set a.customer = customer, a.boundTo = salesman, a.boundType = a.boundType, a.operation = 1;
 
         BUS JkCustomerPool.[bound-strength-changed] into detail 
@@ -30,10 +30,10 @@ PROC ProcCustomerBound(customer ID, salesman ID, boundType smallint) {
     }else{
         if(currentBound <> salesman){
             if(boundType = EnumBoundType.coupon and dateadd(day, boundDays, boundDate) < date(now())) {
-                WITH IxSalesCustomer as a ix = salesman xi = customer 
+                WITH CustomerBound as a ix = customer xi = salesman 
                     set a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
-                VAR customerBoundId ID = ID(CustomerBound new);
-                WITH CustomerBound as a ID = customerBoundId 
+                VAR customerBoundHistoryId ID = ID(CustomerBoundHistory new);
+                WITH CustomerBoundHistory as a ID = customerBoundHistoryId 
                     set a.customer = customer, a.boundTo = salesman, a.boundType = a.boundType, a.operation = 1;
 
                 BUS JkCustomerPool.[bound-strength-changed] into detail 
@@ -42,10 +42,10 @@ PROC ProcCustomerBound(customer ID, salesman ID, boundType smallint) {
             }
 
             if(boundType = EnumBoundType.assign and currentBoundType = EnumBoundType.assign){
-                WITH IxSalesCustomer as a ix = salesman xi = customer 
+                WITH CustomerBound as a ix = customer xi = salesman 
                     set a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
-                VAR customerBoundId ID = ID(CustomerBound new);
-                WITH CustomerBound as a ID = customerBoundId 
+                VAR customerBoundHistoryId ID = ID(CustomerBoundHistory new);
+                WITH CustomerBoundHistory as a ID = customerBoundHistoryId 
                     set a.customer = customer, a.boundTo = salesman, a.boundType = a.boundType, a.operation = 1;
 
                 BUS JkCustomerPool.[bound-strength-changed] into detail 
@@ -54,7 +54,7 @@ PROC ProcCustomerBound(customer ID, salesman ID, boundType smallint) {
             }
         }else{
             if(boundType = EnumBoundType.coupon) {
-                WITH IxSalesCustomer as a ix = salesman xi = customer 
+                WITH CustomerBound as a ix = customer xi = customer 
                     set a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
 
                 BUS JkCustomerPool.[bound-strength-changed] into detail 
@@ -69,7 +69,7 @@ PROC ProcCustomerBound(customer ID, salesman ID, boundType smallint) {
 PROC CheckWeakBound() {
     BUS JkCustomerPool.[bound-strength-changed] LOCAL;
     FOR(VAR customer ID, salesman ID OF 
-    select xi as customer, ix as salesman from IxSalesCustomer 
+    select ix as customer, xi as salesman from CustomerBound 
     where boundDate < dateadd(day, boundDays * -1, date(now()))
     and boundDate > dateadd(day, (boundDays + 1) * -1, date(now()))) {
         BUS JkCustomerPool.[bound-strength-changed] into detail 

@@ -25,10 +25,10 @@ bus cBus from 百灵威系统工程部/coupon
             PROC ProcCustomerBound(couponUser, couponSender, EnumBoundType.coupon);
         }else{
             VAR currSalesman ID;
-            SET currSalesman = t.ix
-            from  IxSalesCustomer as t where t.xi = couponUser; 
+            SET currSalesman = t.xi
+            from  CustomerBound as t where t.ix = couponUser; 
             if(currSalesman is not null){
-                WITH IxSalesCustomer as a ix = currSalesman xi = couponUser SET a.boundDate = date(now()), a.boundDays = 90; 
+                WITH CustomerBound as a ix = couponUser xi = currSalesman SET a.boundDate = date(now()), a.boundDays = 90; 
                 BUS JkCustomerPool.[bound-strength-changed] into detail 
                     ADD customer = couponUser, salesman = currSalesman, strength = EnumBoundStrength.strong;
                 BUS JkCustomerPool.[bound-strength-changed] LOCAL;
@@ -36,8 +36,8 @@ bus cBus from 百灵威系统工程部/coupon
         }
 
         VAR currentBound ID, boundType ENUM EnumBoundType;
-        SET currentBound = t.ix, boundType = t.boundType
-        from IxSalesCustomer as t where t.xi = couponUser;
+        SET currentBound = t.xi, boundType = t.boundType
+        from CustomerBound as t where t.ix = couponUser;
         if(currentBound is not null){
             BUS JkOrderBus.[order-bound-staff-sales] set order = id;
             BUS JkOrderBus.[order-bound-staff-sales] into [to] 

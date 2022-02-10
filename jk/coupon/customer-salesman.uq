@@ -1,16 +1,16 @@
-IX IxSalesCustomer (
-    ix ID,     -- employee id
-    xi ID,    -- customer
+IX CustomerBound (
+    ix ID,     -- customer
+    xi ID,    -- employee id
     boundDate   date,
     boundDays   smallint,
     boundType   ENUM EnumBoundType,
-    INDEX idx_xi(xi) UNIQUE,
+    INDEX idx_xi(ix) UNIQUE,
 );
 
 ENUM EnumBoundType (assign = 1, coupon = 2);
 ENUM EnumBoundStrength (strong = 1, weak = 2);
 
-ID CustomerBound MINUTE (
+ID CustomerBoundHistory MINUTE (
     id,
     customer    ID,
     boundTo     ID,
@@ -50,10 +50,10 @@ PAGE (
     boundDays   smallint,
     boundType   ENUM EnumBoundType,
 ) {
-    PAGE select cb.xi as id, cb.xi as customer, cb.ix as salesman, cb.boundDate, cb.boundDays, cb.boundType
-    from    IxSalesCustomer as cb
-    where   1=1 and cb.ix = $user and  cb.boundDate < start and  cb.boundDate > end
-            and cb.xi > $pageStart 
-    order by cb.xi
+    PAGE select cb.ix as id, cb.ix as customer, cb.xi as salesman, cb.boundDate, cb.boundDays, cb.boundType
+    from    CustomerBound as cb
+    where   1=1 and cb.xi = $user and cb.boundDate < start and  cb.boundDate > end
+            and cb.ix > $pageStart 
+    order by cb.ix
     limit $pageSize;
 };
