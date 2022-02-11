@@ -22,7 +22,7 @@ PROC ProcCustomerBound(customer ID, salesman ID, boundType smallint) {
             set a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
         VAR customerBoundHistoryId ID = ID(CustomerBoundHistory new);
         WITH CustomerBoundHistory as a ID = customerBoundHistoryId 
-            set a.customer = customer, a.boundTo = salesman, a.boundType = a.boundType, a.operation = 1;
+            set a.customer = customer, a.boundTo = salesman, a.boundType = boundType, a.operation = 1;
 
         BUS JkCustomerPool.[bound-strength-changed] into detail 
             ADD customer = customer, salesman = salesman, strength = EnumBoundStrength.strong;
@@ -34,7 +34,7 @@ PROC ProcCustomerBound(customer ID, salesman ID, boundType smallint) {
                     set a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
                 VAR customerBoundHistoryId ID = ID(CustomerBoundHistory new);
                 WITH CustomerBoundHistory as a ID = customerBoundHistoryId 
-                    set a.customer = customer, a.boundTo = salesman, a.boundType = a.boundType, a.operation = 1;
+                    set a.customer = customer, a.boundTo = salesman, a.boundType = boundType, a.operation = 1;
 
                 BUS JkCustomerPool.[bound-strength-changed] into detail 
                     ADD customer = customer, salesman = salesman, strength = EnumBoundStrength.strong;
@@ -46,7 +46,7 @@ PROC ProcCustomerBound(customer ID, salesman ID, boundType smallint) {
                     set a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
                 VAR customerBoundHistoryId ID = ID(CustomerBoundHistory new);
                 WITH CustomerBoundHistory as a ID = customerBoundHistoryId 
-                    set a.customer = customer, a.boundTo = salesman, a.boundType = a.boundType, a.operation = 1;
+                    set a.customer = customer, a.boundTo = salesman, a.boundType = boundType, a.operation = 1;
 
                 BUS JkCustomerPool.[bound-strength-changed] into detail 
                     ADD customer = customer, salesman = salesman, strength = EnumBoundStrength.strong;
