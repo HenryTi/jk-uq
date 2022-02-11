@@ -10,5 +10,38 @@ values(1, 'pool', 'weak bound customers');
 --客户与池的关系
 IX IxPoolCustomer(
     ix,  -- ID Pool,
-    xi   -- ID Customer,
+    xi,   -- ID Customer
+    createDate date,
+);
+
+-- 销售订阅的客户
+IX IxCustomerSubscribing (
+    ix, -- employee 
+    xi, -- ID Customer 
+    createDate date,
+);
+
+-- 销售订阅客户变动提醒
+IX IxCustomerSubscribingNotify (
+    ix, -- employee 
+    xi, -- ID Customer 
+    createDate date,
+);
+
+-- 销售正在开发的客户
+IX IxCustomerDeveloping (
+    ix, -- employee 
+    xi, -- ID Customer 
+    createDate date,
+);
+
+-- 销售客户开发结果
+-- 成功：销售自己发券绑定了客户，自动变成成功；失败：销售自己放弃了；或者是客户被别的销售绑定了
+ID CustomerDeveloped MINUTE (
+    id,
+    sales ID, -- employee 
+    customer ID, -- ID Customer 
+    startDate date,
+    result tinyint not null default 0,
+    sys(create),
 );
