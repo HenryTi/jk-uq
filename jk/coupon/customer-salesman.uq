@@ -43,14 +43,14 @@ IX * IxOrderIntervalSum (
 );
 
 PROC RefreshOrderIntervalSum () {
-    /-- mysql
+    /-mysql
     TRUNCATE TABLE tv_ixorderintervalsum;
 
-    INSERT  IN4yyTO coupon.tv_ixorderintervalsum(ix, xi, VALUE)
+    INSERT  INTO coupon.tv_ixorderintervalsum(ix, xi, VALUE)
     SELECT  xi, DATEDIFF(NOW(), bounddate), COUNT(*)
     FROM    coupon.tv_customerbound
     GROUP BY xi, DATEDIFF(NOW(), bounddate);
-    --/
+    -/
 };
 
 Query getCustomerBoundByMan ( keyWord char(100), start Date, end Date )

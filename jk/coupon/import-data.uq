@@ -78,11 +78,11 @@ PROC CheckWeakBound() {
             ADD customer = customer, salesman = salesman, strength = EnumBoundStrength.weak;
     }
     */
-    /-- mysql
+    /-mysql
     insert into tv_ixpoolcustomer(ix, xi, createdate)
     select  1, ix, now()
     from    tv_customerbound
     where   boundDate < subdate(date(NOW()), interval bounddays day)
             and bounddate > subdate(date(NOW()), interval bounddays + 1 day);
-    --/
+    -/
 };
