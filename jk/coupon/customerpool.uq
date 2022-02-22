@@ -8,28 +8,28 @@ ID Pool CONST(
 values(1, 'pool', 'weak bound customers');
 
 --客户与池的关系
-IX IxPoolCustomer(
+IX * IxPoolCustomer(
     ix,  -- ID Pool,
     xi,   -- ID Customer
     createDate date,
 );
 
 -- 销售订阅的客户
-IX IxCustomerSubscribing (
+IX * IxCustomerSubscribing (
     ix, -- employee 
     xi, -- ID Customer 
     createDate date,
 );
 
 -- 销售订阅客户变动提醒
-IX IxCustomerSubscribingNotify (
+IX * IxCustomerSubscribingNotify (
     ix, -- employee 
     xi, -- ID Customer 
     createDate date,
 );
 
 -- 销售正在开发的客户
-IX IxCustomerDeveloping (
+IX * IxCustomerDeveloping (
     ix, -- employee 
     xi, -- ID Customer 
     createDate date,
