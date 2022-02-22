@@ -79,10 +79,16 @@ PROC CheckWeakBound() {
     }
     */
     /-mysql
-    insert into tv_ixpoolcustomer(ix, xi, createdate)
-    select  1, ix, now()
+    insert ignore into tv_ixpoolcustomer(ix, xi, createdate)
+    select  1, ix, CURDATE() 
     from    tv_customerbound
-    where   boundDate < subdate(date(NOW()), interval bounddays day)
-            and bounddate > subdate(date(NOW()), interval bounddays + 1 day);
+    where   boundDate <= subdate(CURDATE(), interval bounddays day)
+            and bounddate > subdate(CURDATE(), interval bounddays + 1 day);
+        
+    INSERT  IGNORE INTO tv_ixcustomersubscribingnotify(ix, xi, createdate)
+    SELECT  a.ix, a.xi, CURDATE()
+    FROM    tv_ixcustomersubscribing a
+            INNER JOIN tv_ixpoolcustomer b ON a.xi = b.xi
+    WHERE   b.ix = 1 AND b.createdate = CURDATE();
     -/
 };
