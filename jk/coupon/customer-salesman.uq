@@ -53,7 +53,7 @@ PROC RefreshOrderIntervalSum () {
     -/
 };
 
-Query getCustomerBoundByMan ( keyWord char(100), start Date, end Date )
+Query getCustomerBoundByMan ( keyWord char(100), salesman ID, start Date, end Date )
 PAGE (
     id bigint start 0,
     customer ID Customer,
@@ -64,7 +64,7 @@ PAGE (
 ) {
     PAGE select cb.ix as id, cb.ix as customer, cb.xi as salesman, cb.boundDate, cb.boundDays, cb.boundType
     from    CustomerBound as cb
-    where   1=1 and cb.xi = $user and cb.boundDate < start and  cb.boundDate > end
+    where   1=1 and cb.xi = salesman and cb.boundDate < start and  cb.boundDate > end
             and cb.ix > $pageStart 
     order by cb.ix
     limit $pageSize;
