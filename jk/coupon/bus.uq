@@ -6,9 +6,6 @@ bus JkCustomerPool from 百灵威系统工程部/[jk-customerpool]
             if(strength = EnumBoundStrength.strong){
                 DELETE t from IxPoolCustomer as t where t.ix = 1 and t.xi = customer;
             }
-            if(strength = EnumBoundStrength.weak){
-                WITH IxPoolCustomer ix = 1 xi = customer;
-            }
         }
     };
 
