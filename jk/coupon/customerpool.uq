@@ -45,3 +45,33 @@ ID CustomerDeveloped MINUTE (
     result tinyint not null default 0,
     sys(create),
 );
+
+
+Query getDayCustomerPool VER 0.2 ( pool ID, createDate Date )
+PAGE (
+    id bigint start 0,
+    ix ID,
+    customer ID Customer,
+    organization ID Organization,
+    createDate   date,
+){
+    /-mysql
+
+    DROP TEMPORARY TABLE IF EXISTS `_$page_daycustomerpool`;
+    CREATE TEMPORARY TABLE `_$page_daycustomerpool` (`id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, `xi` BIGINT NOT NULL) ENGINE=MyISAM;
+    insert  into `_$page_daycustomerpool`( xi )
+    select  pc.xi
+    from    `tv_ixpoolcustomer` as pc
+    order   by pc.xi;
+
+    INSERT  INTO `_$page` (`id`, `ix`, `customer`, `organization`, `createDate`)
+    SELECT  pc.xi as id, pc.ix, pc.xi as customer, oc.organization as organization, pc.createDate
+    from    `_$page_daycustomerpool` as p1
+            inner join `tv_ixpoolcustomer` as pc on pc.`xi` = p1.xi
+            inner join `customer`.`tv_organizationcustomer` as oc on oc.customer = pc.xi
+    where   p1.id >`_$pagestart`
+    order   by p1.id
+    limit   `_$pagesize`;
+
+    -/
+};

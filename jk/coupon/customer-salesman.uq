@@ -1,4 +1,4 @@
-IX CustomerBound (
+IX * CustomerBound (
     ix ID,     -- customer
     xi ID,    -- employee id
     boundDate   date,
