@@ -33,7 +33,7 @@ OPEN TUID Organization (
 OPEN MAP OrganizationCustomer (
     key organization ID Organization,
     key customer ID Customer,
-    index idx_customer,
+    index idx_customer(customer) unique,
 );
 
 -- Organization的默认发票信息表
@@ -43,18 +43,21 @@ OPEN MAP OrganizationSetting ver 0.1(
     invoiceInfo ID InvoiceInfo,
 );
 
+-- Customer的当前销售，和Coupon中的CustomerBound是一个含义
 OPEN MAP CustomerHandler (
     key customer ID Customer,
     key salesman ID Employee,
     key customerServiceStuff ID Employee,
 );
 
+-- 客户的收货/收发票地址信息 
 OPEN MAP CustomerContacts (
     key customer ID Customer,
     key contact ID Contact,
     isDefault tinyint,
 );
 
+-- 客户默认的收货/收发票地址信息，默认的发票信息
 OPEN MAP CustomerSetting ver 0.1 (
     key customer ID Customer,
     shippingContact ID Contact,
@@ -146,6 +149,7 @@ TUID Department (
     createTime datetime 
 );
 
+-- 客户所在部门
 MAP CustomerDepartment (
     key customer ID Customer,
     key department ID Department

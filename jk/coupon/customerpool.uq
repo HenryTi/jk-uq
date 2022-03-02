@@ -1,16 +1,77 @@
 -- 池
-ID Pool CONST (
+ID Pool CONST(
     id,
     KEY name char(50),
     description char(100),
 )
-+ (name, description)
-values
-('pool', 'weak bound customers')
-;
++(id, name, description)
+values(1, 'pool', 'weak bound customers');
 
 --客户与池的关系
-IX CustomerPool (
+IX * IxPoolCustomer(
     ix,  -- ID Pool,
-    xi   -- ID Customer,
+    xi,   -- ID Customer
+    createDate date,
 );
+
+-- 销售订阅的客户
+IX * IxCustomerSubscribing (
+    ix, -- employee 
+    xi, -- ID Customer 
+    createDate date,
+);
+
+-- 销售订阅客户变动提醒
+IX * IxCustomerSubscribingNotify (
+    ix, -- employee 
+    xi, -- ID Customer 
+    createDate date,
+);
+
+-- 销售正在开发的客户
+IX * IxCustomerDeveloping (
+    ix, -- employee 
+    xi, -- ID Customer 
+    createDate date,
+);
+
+-- 销售客户开发结果
+-- 成功：销售自己发券绑定了客户，自动变成成功；失败：销售自己放弃了；或者是客户被别的销售绑定了
+ID CustomerDeveloped MINUTE (
+    id,
+    sales ID, -- employee 
+    customer ID, -- ID Customer 
+    startDate date,
+    result tinyint not null default 0,
+    sys(create),
+);
+
+
+Query getDayCustomerPool VER 0.2 ( pool ID, createDate Date )
+PAGE (
+    id bigint start 0,
+    ix ID,
+    customer ID Customer,
+    organization ID Organization,
+    createDate   date,
+){
+    /-mysql
+
+    DROP TEMPORARY TABLE IF EXISTS `_$page_daycustomerpool`;
+    CREATE TEMPORARY TABLE `_$page_daycustomerpool` (`id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, `xi` BIGINT NOT NULL) ENGINE=MyISAM;
+    insert  into `_$page_daycustomerpool`( xi )
+    select  pc.xi
+    from    `tv_ixpoolcustomer` as pc
+    order   by pc.xi;
+
+    INSERT  INTO `_$page` (`id`, `ix`, `customer`, `organization`, `createDate`)
+    SELECT  pc.xi as id, pc.ix, pc.xi as customer, oc.organization as organization, pc.createDate
+    from    `_$page_daycustomerpool` as p1
+            inner join `tv_ixpoolcustomer` as pc on pc.`xi` = p1.xi
+            inner join `customer`.`tv_organizationcustomer` as oc on oc.customer = pc.xi
+    where   p1.id >`_$pagestart`
+    order   by p1.id
+    limit   `_$pagesize`;
+
+    -/
+};

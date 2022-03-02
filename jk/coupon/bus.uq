@@ -4,10 +4,7 @@ bus JkCustomerPool from 百灵威系统工程部/[jk-customerpool]
     ACCEPT [bound-strength-changed] {
         FOR detail {
             if(strength = EnumBoundStrength.strong){
-                DELETE t from customerpool as t where t.ix = 1 and t.xi = customer;
-            }
-            if(strength = EnumBoundStrength.weak){
-                WITH customerpool ix = 1 xi = customer;
+                DELETE t from IxPoolCustomer as t where t.ix = 1 and t.xi = customer;
             }
         }
     };
@@ -25,10 +22,10 @@ bus cBus from 百灵威系统工程部/coupon
             PROC ProcCustomerBound(couponUser, couponSender, EnumBoundType.coupon);
         }else{
             VAR currSalesman ID;
-            SET currSalesman = t.salesman 
-            from  CustomerBound as t where t.ID = couponUser; 
+            SET currSalesman = t.salesman
+            from  CustomerBound as t where t.id = couponUser; 
             if(currSalesman is not null){
-                WITH CustomerBound as a ID = couponUser SET a.boundDate = date(now()), a.boundDays = 90; 
+                WITH CustomerBound as a id = couponUser SET a.salesman = currSalesman, a.boundDate = date(now()), a.boundDays = 90; 
                 BUS JkCustomerPool.[bound-strength-changed] into detail 
                     ADD customer = couponUser, salesman = currSalesman, strength = EnumBoundStrength.strong;
                 BUS JkCustomerPool.[bound-strength-changed] LOCAL;
@@ -37,7 +34,7 @@ bus cBus from 百灵威系统工程部/coupon
 
         VAR currentBound ID, boundType ENUM EnumBoundType;
         SET currentBound = t.salesman, boundType = t.boundType
-        from CustomerBound as t where t.ID = couponUser;
+        from CustomerBound as t where t.id = couponUser;
         if(currentBound is not null){
             BUS JkOrderBus.[order-bound-staff-sales] set order = id;
             BUS JkOrderBus.[order-bound-staff-sales] into [to] 

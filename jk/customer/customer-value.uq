@@ -1,0 +1,5 @@
+IDX DxCustomerValue(
+    id,
+    value dec(12, 4),
+    sys(create, update),
+);

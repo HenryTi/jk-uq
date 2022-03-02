@@ -8,13 +8,13 @@ ID CustomerTag (
 );
 
 -- 销售人员创建的标签 
-IX SalesmanCustomerTag (
+IX * SalesmanCustomerTag (
     ix,     -- Salesman
     xi,     -- CustomerTag
 );
 
 -- 客户被销售人员打的标签
-IX CustomerTagCustomer (
+IX * CustomerTagCustomer (
     ix,     -- CustomerTag
     xi,     -- Customer
 );

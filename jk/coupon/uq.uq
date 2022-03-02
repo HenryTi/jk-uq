@@ -1,3 +1,4 @@
 UQ 百灵威系统工程部/[coupon] version='1.00' author='ligsh' {
-    SCHEDULE CheckWeakBound ON 3:20 REPEAT -1;
+    SCHEDULE CheckWeakBound ON 11:20 REPEAT -1;     -- 这个时间是标准时间不是北京时间
+    SCHEDULE RefreshOrderIntervalSum ON 11:25 REPEAT -1;
 }
