@@ -62,6 +62,7 @@ PROC RefreshOrderIntervalSum () {
     -/
 };
 
+
 Query getCustomerBoundByMan ( keyWord char(100), salesman ID, start Date, end Date )
 PAGE (
     id bigint start 0,
