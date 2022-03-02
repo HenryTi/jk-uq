@@ -91,8 +91,8 @@ returns ret (
     var salesmanBounded ID [$user];    --客户的当前轻代理
     set     salesmanBounded = b.ix
     from    CustomerBound as c 
-            left join IxWebuserEmployeeCopy as b on c.xi = b.xi
-    where   c.ix = customer and c.boundDate > dateadd(day, c.boundDays * -1, now()) 
+            left join IxWebuserEmployeeCopy as b on c.salesman = b.xi
+    where   c.id = customer and c.boundDate > dateadd(day, c.boundDays * -1, now()) 
     limit 1; --当前轻代理
 
     if (coupon is null) {

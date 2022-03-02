@@ -14,12 +14,12 @@ PROC ProcCustomerBound(customer ID, salesman ID, boundType smallint) {
     */
     -- 获取tonva系统中客户当前绑定信息
     VAR currentBound ID, boundDate date, boundDays smallint, currentBoundType ENUM EnumBoundType;
-    SET currentBound = t.xi, boundDate = t.boundDate, boundDays = t.boundDays, currentBoundType = boundType
-    from CustomerBound as t where t.ix = customer;
+    SET currentBound = t.salesman, boundDate = t.boundDate, boundDays = t.boundDays, currentBoundType = boundType
+    from CustomerBound as t where t.id = customer;
 
     if(currentBound is null){
-        WITH CustomerBound as a ix = customer xi = salesman 
-            set a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
+        WITH CustomerBound as a id = customer SET a.salesman = salesman 
+            , a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
         VAR customerBoundHistoryId ID = ID(CustomerBoundHistory new);
         WITH CustomerBoundHistory as a ID = customerBoundHistoryId 
             set a.customer = customer, a.boundTo = salesman, a.boundType = boundType, a.operation = 1;
@@ -30,8 +30,8 @@ PROC ProcCustomerBound(customer ID, salesman ID, boundType smallint) {
     }else{
         if(currentBound <> salesman){
             if(boundType = EnumBoundType.coupon and dateadd(day, boundDays, boundDate) < date(now())) {
-                WITH CustomerBound as a ix = customer xi = salesman 
-                    set a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
+                WITH CustomerBound as a id = customer SET a.salesman = salesman 
+                    , a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
                 VAR customerBoundHistoryId ID = ID(CustomerBoundHistory new);
                 WITH CustomerBoundHistory as a ID = customerBoundHistoryId 
                     set a.customer = customer, a.boundTo = salesman, a.boundType = boundType, a.operation = 1;
@@ -42,8 +42,8 @@ PROC ProcCustomerBound(customer ID, salesman ID, boundType smallint) {
             }
 
             if(boundType = EnumBoundType.assign and currentBoundType = EnumBoundType.assign){
-                WITH CustomerBound as a ix = customer xi = salesman 
-                    set a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
+                WITH CustomerBound as a id = customer SET a.salesman = salesman 
+                    , a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
                 VAR customerBoundHistoryId ID = ID(CustomerBoundHistory new);
                 WITH CustomerBoundHistory as a ID = customerBoundHistoryId 
                     set a.customer = customer, a.boundTo = salesman, a.boundType = boundType, a.operation = 1;
@@ -54,8 +54,8 @@ PROC ProcCustomerBound(customer ID, salesman ID, boundType smallint) {
             }
         }else{
             if(boundType = EnumBoundType.coupon) {
-                WITH CustomerBound as a ix = customer xi = customer 
-                    set a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
+                WITH CustomerBound as a id = customer SET a.salesman = salesman 
+                    , a.boundDate = date(now()), a.boundDays = 90, a.boundType = boundType;
 
                 BUS JkCustomerPool.[bound-strength-changed] into detail 
                     ADD customer = customer, salesman = salesman, strength = EnumBoundStrength.strong;
@@ -71,7 +71,7 @@ PROC CheckWeakBound() {
     /*
     BUS JkCustomerPool.[bound-strength-changed] LOCAL;
     FOR(VAR customer ID, salesman ID OF 
-    select ix as customer, xi as salesman from CustomerBound 
+    select id as customer, salesman from CustomerBound 
     where boundDate < dateadd(day, boundDays * -1, date(now()))
     and boundDate > dateadd(day, (boundDays + 1) * -1, date(now()))) {
         BUS JkCustomerPool.[bound-strength-changed] into detail 
@@ -80,7 +80,7 @@ PROC CheckWeakBound() {
     */
     /-mysql
     insert ignore into tv_ixpoolcustomer(ix, xi, createdate)
-    select  1, ix, CURDATE() 
+    select  1, id, CURDATE() 
     from    tv_customerbound
     where   boundDate <= subdate(CURDATE(), interval bounddays day)
             and bounddate > subdate(CURDATE(), interval bounddays + 1 day);

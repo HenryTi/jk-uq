@@ -1,11 +1,10 @@
-IX * CustomerBound (
-    ix ID,     -- customer
-    xi ID,    -- employee id
+IDX * CustomerBound (
+    id,     -- customer
+    salesman ID,    -- employee id
     boundDate   date,
     boundDays   smallint,
     boundType   ENUM EnumBoundType,
-    INDEX idx_ix(ix) UNIQUE,
-    INDEX idx_xi(xi),
+    INDEX idx_salesman(salesman),
 );
 
 ENUM EnumBoundType (assign = 1, coupon = 2);
@@ -47,9 +46,9 @@ PROC RefreshOrderIntervalSum () {
     TRUNCATE TABLE tv_ixorderintervalsum;
 
     INSERT  INTO coupon.tv_ixorderintervalsum(ix, xi, VALUE)
-    SELECT  xi, DATEDIFF(NOW(), bounddate), COUNT(*)
+    SELECT  salesman, DATEDIFF(NOW(), bounddate), COUNT(*)
     FROM    coupon.tv_customerbound
-    GROUP BY xi, DATEDIFF(NOW(), bounddate);
+    GROUP BY salesman, DATEDIFF(NOW(), bounddate);
     -/
 };
 
@@ -62,10 +61,10 @@ PAGE (
     boundDays   smallint,
     boundType   ENUM EnumBoundType,
 ) {
-    PAGE select cb.ix as id, cb.ix as customer, cb.xi as salesman, cb.boundDate, cb.boundDays, cb.boundType
+    PAGE select cb.id as id, cb.id as customer, cb.salesman, cb.boundDate, cb.boundDays, cb.boundType
     from    CustomerBound as cb
-    where   1=1 and cb.xi = salesman and cb.boundDate < start and  cb.boundDate > end
-            and cb.ix > $pageStart 
-    order by cb.ix
+    where   1=1 and cb.salesman = salesman and cb.boundDate < start and  cb.boundDate > end
+            and cb.id > $pageStart 
+    order by cb.id
     limit $pageSize;
 };
