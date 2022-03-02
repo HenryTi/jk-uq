@@ -1,3 +1,12 @@
+IX IxSalesCustomer (
+    ix,                     -- sales
+    xi,                     -- customer
+    boundDate DATE,         -- the day bound
+    boundDays SMALLINT,
+    boundType  ENUM EnumBoundType,
+    index xi(xi) UNIQUE,
+);
+
 IDX CustomerBound (
     ID,     -- customer
     salesman ID,    -- employee id
@@ -9,12 +18,32 @@ IDX CustomerBound (
 ENUM EnumBoundType (assign = 1, coupon = 2);
 ENUM EnumBoundStrength (strong = 1, weak = 2);
 
+ID CustomerBoundHistory MINUTE (
+    id,
+    -- date,
+    customer    ID,
+    boundTo     ID,
+    boundType   ENUM EnumBoundType,
+    operation   tinyint,    -- 1:绑定；0:解绑
+    INDEX customer_id (customer, id),
+);
+
 HISTORY CustomerBoundHistory (
     date,
     customer    ID,
     boundTo     ID,
     boundType   ENUM EnumBoundType,
     operation   tinyint,    -- 1:绑定；0:解绑
+);
+
+ID test (
+    id,
+    key k1,
+    key k2,
+    key k3,
+    n1,
+    n2,
+    n3,
 );
 
 IX WebUserBound (

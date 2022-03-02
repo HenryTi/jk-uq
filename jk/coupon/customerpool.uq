@@ -1,12 +1,16 @@
 -- 池
-ID Pool(
+ID Pool CONST (
     id,
-    name char(50),
+    KEY name char(50),
     description char(100),
-);
+)
++ (name, description)
+values
+('pool', 'weak bound customers')
+;
 
 --客户与池的关系
-IX CustomerPool(
+IX CustomerPool (
     ix,  -- ID Pool,
     xi   -- ID Customer,
 );
